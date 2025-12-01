@@ -1,21 +1,15 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 import { FILE_PATH } from "./constants.js";
-import { XmlStructure, ConfigData, IpcChannels } from "./types.js";
+import { XmlStructure, ConfigData } from "./types.js";
+import { handleIpc } from "./ipc-helper.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const handleIpc = <K extends keyof IpcChannels>(
-  channel: K,
-  listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
-) => {
-  ipcMain.handle(channel, listener);
-};
 
 function createWindow() {
   const win = new BrowserWindow({
