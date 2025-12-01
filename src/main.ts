@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
+import { FILE_PATH } from "./constants.js";
 
 // 型定義: ボタンのデータ構造
 interface LauncherButton {
@@ -34,16 +35,13 @@ function createWindow() {
     width: 600,
     height: 500,
     webPreferences: {
-      // distフォルダに出力されるので、同じ階層のpreload.jsを読む
-      preload: path.join(__dirname, "preload.js"),
-      sandbox: false, // ユーザー設定によりfalse
+      preload: path.join(__dirname, FILE_PATH.preload),
+      sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
-
-  // distフォルダから見ると index.html は一つ上の階層にある
-  win.loadFile(path.join(__dirname, "../index.html"));
+  win.loadFile(path.join(__dirname, FILE_PATH.indexHtml));
 }
 
 app.whenReady().then(() => {
@@ -51,8 +49,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle("load-config", async (): Promise<LauncherButton[]> => {
     try {
-      // dist/main.js から見てプロジェクトルートの config.xml を探す
-      const xmlPath = path.join(__dirname, "../config.xml");
+      const xmlPath = path.join(__dirname, FILE_PATH.configXml);
       const xmlData = await fs.readFile(xmlPath, "utf8");
 
       const parser = new XMLParser({
