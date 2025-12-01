@@ -1,20 +1,22 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
+import { XMLParser } from "fast-xml-parser";
 
-// ESMで __dirname 相当の変数を定義する（必須のおまじない）
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 500,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
   });
 
@@ -24,18 +26,42 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // コマンド実行ハンドラー
+  ipcMain.handle("load-config", async () => {
+    try {
+      const xmlPath = path.join(__dirname, "config.xml");
+      const xmlData = await fs.readFile(xmlPath, "utf8");
+
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        cdataPropName: "__cdata",
+      });
+
+      const jsonObj = parser.parse(xmlData);
+
+      let buttons = jsonObj.launcher.button;
+      if (!Array.isArray(buttons)) {
+        buttons = [buttons];
+      }
+
+      return buttons.map((btn) => {
+        const labelText = btn.label && btn.label.__cdata ? btn.label.__cdata : btn.label;
+        return {
+          label: labelText,
+          command: btn.command,
+        };
+      });
+    } catch (err) {
+      console.error("XML読み込みエラー:", err);
+      return [];
+    }
+  });
+
   ipcMain.handle("run-os-command", async (event, command) => {
-    console.log(`実行します: ${command}`);
-    // Promiseでラップして結果を待てるようにしておくと便利です
-    return new Promise((resolve, reject) => {
-      exec(command, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error: ${error.message}`);
-          resolve(`エラー: ${error.message}`);
-          return;
-        }
-        resolve(`成功: ${stdout || "コマンド送信完了"}`);
+    console.log(`実行: ${command}`);
+    return new Promise((resolve) => {
+      exec(command, (error, stdout) => {
+        if (error) resolve(`エラー: ${error.message}`);
+        else resolve(`成功`);
       });
     });
   });

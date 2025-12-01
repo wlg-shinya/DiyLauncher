@@ -1,0 +1,14 @@
+<launcher>
+    <button>
+        <label><![CDATA[📝 <b>メモ帳</b>を開く]]></label>
+        <command>notepad.exe</command>
+    </button>
+    <button>
+        <label><![CDATA[🧮 <span style="color:blue">電卓</span>]]></label>
+        <command>calc.exe</command>
+    </button>
+    <button>
+        <label><![CDATA[🌐 Google (ブラウザ)]]></label>
+        <command>start https://google.com</command>
+    </button>
+</launcher>
