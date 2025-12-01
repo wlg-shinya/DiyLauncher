@@ -1,10 +1,13 @@
-import { contextBridge } from "electron";
-import { MyAPI } from "./types.js";
-import { invokeIpc } from "./ipc-helper.js";
+import { contextBridge, ipcRenderer } from "electron";
+import { MyAPI, IpcChannels } from "./types.js";
+
+const invoke = <K extends keyof IpcChannels>(channel: K, ...args: Parameters<IpcChannels[K]>): Promise<ReturnType<IpcChannels[K]>> => {
+  return ipcRenderer.invoke(channel, ...args);
+};
 
 const myApi: MyAPI = {
-  loadConfig: () => invokeIpc("load-config"),
-  runCommand: (command: string) => invokeIpc("run-os-command", command),
+  loadConfig: () => invoke("load-config"),
+  runCommand: (command: string) => invoke("run-os-command", command),
 };
 
 contextBridge.exposeInMainWorld("myAPI", myApi);
