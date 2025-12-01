@@ -2,9 +2,9 @@
   "name": "diy-launcher",
   "version": "0.0.1",
   "description": "",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "tsc && electron ."
   },
   "keywords": [],
   "author": "wlg-shinya",

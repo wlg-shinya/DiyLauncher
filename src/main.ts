@@ -5,6 +5,27 @@ import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 
+// 型定義: ボタンのデータ構造
+interface LauncherButton {
+  label: string;
+  command: string;
+}
+
+// 型定義: XML全体の構造
+interface XmlStructure {
+  launcher: {
+    button:
+      | {
+          label: string | { __cdata: string };
+          command: string;
+        }
+      | Array<{
+          label: string | { __cdata: string };
+          command: string;
+        }>;
+  };
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -13,22 +34,25 @@ function createWindow() {
     width: 600,
     height: 500,
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs"),
+      // distフォルダに出力されるので、同じ階層のpreload.jsを読む
+      preload: path.join(__dirname, "preload.js"),
+      sandbox: false, // ユーザー設定によりfalse
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
     },
   });
 
-  win.loadFile("index.html");
+  // distフォルダから見ると index.html は一つ上の階層にある
+  win.loadFile(path.join(__dirname, "../index.html"));
 }
 
 app.whenReady().then(() => {
   createWindow();
 
-  ipcMain.handle("load-config", async () => {
+  ipcMain.handle("load-config", async (): Promise<LauncherButton[]> => {
     try {
-      const xmlPath = path.join(__dirname, "config.xml");
+      // dist/main.js から見てプロジェクトルートの config.xml を探す
+      const xmlPath = path.join(__dirname, "../config.xml");
       const xmlData = await fs.readFile(xmlPath, "utf8");
 
       const parser = new XMLParser({
@@ -36,15 +60,17 @@ app.whenReady().then(() => {
         cdataPropName: "__cdata",
       });
 
-      const jsonObj = parser.parse(xmlData);
+      const jsonObj = parser.parse(xmlData) as XmlStructure;
 
       let buttons = jsonObj.launcher.button;
       if (!Array.isArray(buttons)) {
         buttons = [buttons];
       }
 
+      // 整形して返す
       return buttons.map((btn) => {
-        const labelText = btn.label && btn.label.__cdata ? btn.label.__cdata : btn.label;
+        const labelText = typeof btn.label === "object" && btn.label.__cdata ? btn.label.__cdata : (btn.label as string);
+
         return {
           label: labelText,
           command: btn.command,
@@ -56,12 +82,12 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle("run-os-command", async (event, command) => {
+  ipcMain.handle("run-os-command", async (_event, command: string) => {
     console.log(`実行: ${command}`);
-    return new Promise((resolve) => {
-      exec(command, (error, stdout) => {
-        if (error) resolve(`エラー: ${error.message}`);
-        else resolve(`成功`);
+    return new Promise<void>((resolve) => {
+      exec(command, (error) => {
+        if (error) console.error(error);
+        resolve();
       });
     });
   });
