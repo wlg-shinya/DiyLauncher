@@ -5,14 +5,7 @@ import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 import { FILE_PATH } from "./constants.js";
-
-interface XmlStructure {
-  config: {
-    layout: {
-      __cdata: string;
-    };
-  };
-}
+import { XmlStructure } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

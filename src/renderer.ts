@@ -1,11 +1,8 @@
-interface IMyAPI {
-  loadConfig: () => Promise<string>;
-  runCommand: (command: string) => Promise<void>;
-}
+import { MyAPI } from "./types.js";
 
 declare global {
   interface Window {
-    myAPI: IMyAPI;
+    myAPI: MyAPI;
   }
 }
 
