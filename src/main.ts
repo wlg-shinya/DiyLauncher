@@ -29,7 +29,7 @@ async function readConfigXml(): Promise<XmlStructure | null> {
 
     // 外部で設定しているHTMLがそのまま読み込まれるようCDATA付与
     xmlData = injectCdata(xmlData, "style");
-    xmlData = injectCdata(xmlData, "layout");
+    xmlData = injectCdata(xmlData, "body");
 
     // XMLパース
     const parser = new XMLParser({
@@ -52,9 +52,9 @@ const handleIpc = <K extends keyof IpcChannels>(
 
 async function createWindow() {
   const xmlObj = await readConfigXml();
-  const config = xmlObj?.config;
-  const width = config?.width ? Number(config.width) : 600;
-  const height = config?.height ? Number(config.height) : 500;
+  const configHead = xmlObj?.config.head;
+  const width = configHead?.width ? Number(configHead.width) : 600;
+  const height = configHead?.height ? Number(configHead.height) : 500;
   const win = new BrowserWindow({
     width: width,
     height: height,
@@ -76,16 +76,16 @@ app.whenReady().then(() => {
     try {
       const xmlObj = await readConfigXml();
       const config = xmlObj?.config;
-      const layoutHtml = config?.layout?.__cdata || "<div>No Layout</div>";
-      const styleCss = config?.style?.__cdata || "";
-      const appTitle = config?.title || app.getName();
+      const appTitle = config?.head?.title || app.getName();
+      const styleCss = config?.head?.style?.__cdata || "";
+      const layoutHtml = config?.body?.__cdata || "<div>No Layout</div>";
       return {
         title: appTitle,
-        html: layoutHtml,
         css: styleCss,
+        html: layoutHtml,
       };
     } catch (err) {
-      return { title: app.getName(), html: `<div>Error: ${err}</div>`, css: "" };
+      return { title: app.getName(), css: "", html: `<div>Error: ${err}</div>` };
     }
   });
 

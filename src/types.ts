@@ -1,11 +1,13 @@
 // XML全体の構造
 export interface XmlStructure {
   config: {
-    title?: string;
-    width?: number;
-    height?: number;
-    style?: { __cdata: string };
-    layout: {
+    head?: {
+      title?: string;
+      width?: number;
+      height?: number;
+      style?: { __cdata: string };
+    };
+    body: {
       __cdata: string;
     };
   };

@@ -1,13 +1,15 @@
 <config>
-    <title>DIY Launcher</title>
-    <width>800</width>
-    <height>600</height>
-    <style>
-        body { background-color: #222; color: #fff; }
-        .grid-container { display: grid; gap: 10px; }
-        .launcher-btn { padding: 20px; cursor: pointer; }
-    </style>
-    <layout>
+    <head>
+        <title>DIY Launcher</title>
+        <width>800</width>
+        <height>600</height>
+        <style>
+            body { background-color: #222; color: #fff; }
+            .grid-container { display: grid; gap: 10px; }
+            .launcher-btn { padding: 20px; cursor: pointer; }
+        </style>
+    </head>
+    <body>
         <div class="grid-container">
             <button class="launcher-btn" data-command="notepad.exe">
                 📝 メモ帳
@@ -16,5 +18,5 @@
                 🧮 電卓
             </button>
         </div>
-    </layout>
+    </body>
 </config>
