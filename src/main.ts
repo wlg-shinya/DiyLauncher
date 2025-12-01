@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 import { FILE_PATH } from "./constants.js";
-import { XmlStructure } from "./types.js";
+import { XmlStructure, ConfigData } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +27,7 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  ipcMain.handle("load-config", async (): Promise<string> => {
+  ipcMain.handle("load-config", async (): Promise<ConfigData> => {
     try {
       const xmlPath = path.join(__dirname, FILE_PATH.configXml);
       const xmlData = await fs.readFile(xmlPath, "utf8");
@@ -38,13 +38,19 @@ app.whenReady().then(() => {
       });
 
       const jsonObj = parser.parse(xmlData) as XmlStructure;
-      if (jsonObj.config && jsonObj.config.layout && jsonObj.config.layout.__cdata) {
-        return jsonObj.config.layout.__cdata;
-      }
-      return "<div>設定読み込みエラー: レイアウトが見つかりません</div>";
+
+      // データ抽出
+      const layoutHtml = jsonObj.config?.layout?.__cdata || "<div>No Layout</div>";
+      const styleCss = jsonObj.config?.style?.__cdata || "";
+
+      // セットで返す
+      return {
+        html: layoutHtml,
+        css: styleCss,
+      };
     } catch (err) {
       console.error("XML読み込みエラー:", err);
-      return `<div>エラーが発生しました: ${err}</div>`;
+      return { html: `<div>Error: ${err}</div>`, css: "" };
     }
   });
 

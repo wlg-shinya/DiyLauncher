@@ -1,4 +1,4 @@
-import { MyAPI } from "./types.js";
+import { MyAPI, ConfigData } from "./types.js";
 
 declare global {
   interface Window {
@@ -12,8 +12,17 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!appDiv) return;
 
   // HTML文字列をそのまま流し込む
-  const htmlContent = await window.myAPI.loadConfig();
-  appDiv.innerHTML = htmlContent;
+  const { html, css } = await window.myAPI.loadConfig();
+  appDiv.innerHTML = html;
+
+  // CSSを適用する
+  const userCustomStyleName = "user-custom-style";
+  const userCustomStyle = document.getElementById(userCustomStyleName);
+  if (userCustomStyle) userCustomStyle.remove();
+  const styleTag = document.createElement("style");
+  styleTag.id = userCustomStyleName;
+  styleTag.textContent = css;
+  document.head.appendChild(styleTag);
 
   // data-command 属性を持つ全ての要素にイベントリスナーを付与する
   const commandElements = appDiv.querySelectorAll("[data-command]");
