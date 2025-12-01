@@ -7,7 +7,9 @@
   "scripts": {
     "build": "tsc",
     "start": "tsc && electron .",
-    "release": "npm run build && electron-builder"
+    "pack": "npm run build && electron-builder --dir",
+    "pack-release": "npm run build && electron-builder",
+    "pack-clean": "rm -rf ./package"
   },
   "keywords": [],
   "author": "wlg-shinya",
@@ -16,7 +18,7 @@
     "appId": "com.welovegamesinc.diy-launcher",
     "productName": "DiyLauncher",
     "directories": {
-      "output": "release"
+      "output": "package"
     },
     "files": [
       "dist/**/*",
