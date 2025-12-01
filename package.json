@@ -32,8 +32,8 @@
     ],
     "extraFiles": [
       {
-        "from": "README.txt",
-        "to": "."
+        "from": "README.md",
+        "to": "./README.txt"
       }
     ],
     "win": {
