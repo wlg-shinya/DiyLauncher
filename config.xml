@@ -1,4 +1,5 @@
 <config>
+    <title>DIY Launcher</title>
     <style><![CDATA[
         /* 全体の背景 */
         body { 

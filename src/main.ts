@@ -49,15 +49,17 @@ app.whenReady().then(() => {
       // データ抽出
       const layoutHtml = jsonObj.config?.layout?.__cdata || "<div>No Layout</div>";
       const styleCss = jsonObj.config?.style?.__cdata || "";
+      const appTitle = jsonObj.config?.title || app.getName();
 
       // セットで返す
       return {
-        html: layoutHtml,
+        title: appTitle,
         css: styleCss,
+        html: layoutHtml,
       };
     } catch (err) {
       console.error("XML読み込みエラー:", err);
-      return { html: `<div>Error: ${err}</div>`, css: "" };
+      return { title: "Error", css: "", html: `<div>Error: ${err}</div>` };
     }
   });
 

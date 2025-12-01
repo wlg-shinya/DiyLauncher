@@ -11,9 +11,10 @@ const appDiv = document.getElementById("app");
 window.addEventListener("DOMContentLoaded", async () => {
   if (!appDiv) return;
 
-  // HTML文字列をそのまま流し込む
-  const { html, css } = await window.myAPI.loadConfig();
-  appDiv.innerHTML = html;
+  const { title, css, html } = await window.myAPI.loadConfig();
+
+  // タイトルを反映
+  document.title = title;
 
   // CSSを適用する
   const userCustomStyleName = "user-custom-style";
@@ -23,6 +24,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   styleTag.id = userCustomStyleName;
   styleTag.textContent = css;
   document.head.appendChild(styleTag);
+
+  // HTML文字列をそのまま流し込む
+  appDiv.innerHTML = html;
 
   // data-command 属性を持つ全ての要素にイベントリスナーを付与する
   const commandElements = appDiv.querySelectorAll("[data-command]");

@@ -1,6 +1,7 @@
 // XML全体の構造
 export interface XmlStructure {
   config: {
+    title?: string;
     style?: { __cdata: string };
     layout: {
       __cdata: string;
@@ -10,8 +11,9 @@ export interface XmlStructure {
 
 // Configデータの戻り値型
 export interface ConfigData {
-  html: string;
+  title: string;
   css: string;
+  html: string;
 }
 
 // IPC通信チャンネル名と型定義のマップ
