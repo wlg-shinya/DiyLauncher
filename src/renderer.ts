@@ -1,4 +1,4 @@
-import { MyAPI, ConfigData } from "./types.js";
+import { MyAPI } from "./types.js";
 
 declare global {
   interface Window {
