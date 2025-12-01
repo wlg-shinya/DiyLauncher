@@ -28,6 +28,12 @@
         "to": "config.xml"
       }
     ],
+    "extraFiles": [
+      {
+        "from": "README.txt",
+        "to": "."
+      }
+    ],
     "win": {
       "target": "zip",
       "icon": "icon.ico"
