@@ -10,6 +10,23 @@ import { XmlStructure, ConfigData, IpcChannels } from "./types.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+async function readConfigXml(): Promise<XmlStructure | null> {
+  try {
+    const xmlPath = path.join(__dirname, FILE_PATH.configXml);
+    const xmlData = await fs.readFile(xmlPath, "utf8");
+
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      cdataPropName: "__cdata",
+    });
+
+    return parser.parse(xmlData) as XmlStructure;
+  } catch (err) {
+    console.error("Config読み込み失敗:", err);
+    return null;
+  }
+}
+
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
   listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
@@ -17,10 +34,14 @@ const handleIpc = <K extends keyof IpcChannels>(
   ipcMain.handle(channel, listener);
 };
 
-function createWindow() {
+async function createWindow() {
+  const xmlObj = await readConfigXml();
+  const config = xmlObj?.config;
+  const width = config?.width ? Number(config.width) : 600;
+  const height = config?.height ? Number(config.height) : 500;
   const win = new BrowserWindow({
-    width: 600,
-    height: 500,
+    width: width,
+    height: height,
     webPreferences: {
       preload: path.join(__dirname, FILE_PATH.preload),
       sandbox: false,
@@ -28,38 +49,27 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
   win.loadFile(path.join(__dirname, FILE_PATH.indexHtml));
 }
 
 app.whenReady().then(() => {
   createWindow();
 
-  handleIpc("load-config", async (): Promise<ConfigData> => {
+  handleIpc("load-config", async () => {
     try {
-      const xmlPath = path.join(__dirname, FILE_PATH.configXml);
-      const xmlData = await fs.readFile(xmlPath, "utf8");
-
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        cdataPropName: "__cdata",
-      });
-
-      const jsonObj = parser.parse(xmlData) as XmlStructure;
-
-      // データ抽出
-      const layoutHtml = jsonObj.config?.layout?.__cdata || "<div>No Layout</div>";
-      const styleCss = jsonObj.config?.style?.__cdata || "";
-      const appTitle = jsonObj.config?.title || app.getName();
-
-      // セットで返す
+      const xmlObj = await readConfigXml();
+      const config = xmlObj?.config;
+      const layoutHtml = config?.layout?.__cdata || "<div>No Layout</div>";
+      const styleCss = config?.style?.__cdata || "";
+      const appTitle = config?.title || app.getName();
       return {
         title: appTitle,
-        css: styleCss,
         html: layoutHtml,
+        css: styleCss,
       };
     } catch (err) {
-      console.error("XML読み込みエラー:", err);
-      return { title: "Error", css: "", html: `<div>Error: ${err}</div>` };
+      return { title: app.getName(), html: `<div>Error: ${err}</div>`, css: "" };
     }
   });
 

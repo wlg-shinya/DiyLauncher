@@ -1,5 +1,7 @@
 <config>
     <title>DIY Launcher</title>
+    <width>800</width>
+    <height>600</height>
     <style><![CDATA[
         /* 全体の背景 */
         body { 

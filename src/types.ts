@@ -2,6 +2,8 @@
 export interface XmlStructure {
   config: {
     title?: string;
+    width?: number;
+    height?: number;
     style?: { __cdata: string };
     layout: {
       __cdata: string;
