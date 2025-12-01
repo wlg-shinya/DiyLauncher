@@ -6,24 +6,11 @@ import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 import { FILE_PATH } from "./constants.js";
 
-// 型定義: ボタンのデータ構造
-interface LauncherButton {
-  label: string;
-  command: string;
-}
-
-// 型定義: XML全体の構造
 interface XmlStructure {
-  launcher: {
-    button:
-      | {
-          label: string | { __cdata: string };
-          command: string;
-        }
-      | Array<{
-          label: string | { __cdata: string };
-          command: string;
-        }>;
+  config: {
+    layout: {
+      __cdata: string;
+    };
   };
 }
 
@@ -47,7 +34,7 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  ipcMain.handle("load-config", async (): Promise<LauncherButton[]> => {
+  ipcMain.handle("load-config", async (): Promise<string> => {
     try {
       const xmlPath = path.join(__dirname, FILE_PATH.configXml);
       const xmlData = await fs.readFile(xmlPath, "utf8");
@@ -58,24 +45,13 @@ app.whenReady().then(() => {
       });
 
       const jsonObj = parser.parse(xmlData) as XmlStructure;
-
-      let buttons = jsonObj.launcher.button;
-      if (!Array.isArray(buttons)) {
-        buttons = [buttons];
+      if (jsonObj.config && jsonObj.config.layout && jsonObj.config.layout.__cdata) {
+        return jsonObj.config.layout.__cdata;
       }
-
-      // 整形して返す
-      return buttons.map((btn) => {
-        const labelText = typeof btn.label === "object" && btn.label.__cdata ? btn.label.__cdata : (btn.label as string);
-
-        return {
-          label: labelText,
-          command: btn.command,
-        };
-      });
+      return "<div>設定読み込みエラー: レイアウトが見つかりません</div>";
     } catch (err) {
       console.error("XML読み込みエラー:", err);
-      return [];
+      return `<div>エラーが発生しました: ${err}</div>`;
     }
   });
 

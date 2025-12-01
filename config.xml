@@ -1,14 +1,22 @@
-<launcher>
-    <button>
-        <label><![CDATA[📝 <b>メモ帳</b>を開く]]></label>
-        <command>notepad.exe</command>
-    </button>
-    <button>
-        <label><![CDATA[🧮 <span style="color:blue">電卓</span>]]></label>
-        <command>calc.exe</command>
-    </button>
-    <button>
-        <label><![CDATA[🌐 Google (ブラウザ)]]></label>
-        <command>start https://google.com</command>
-    </button>
-</launcher>
+<config>
+    <layout><![CDATA[
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            
+            <button class="launcher-btn" data-command="notepad.exe">
+                📝 <b>メモ帳</b>
+            </button>
+
+            <div style="background: #ddd; padding: 10px; border-radius: 8px;">
+                <p>ここはグループです</p>
+                <span style="cursor:pointer; color:blue;" data-command="calc.exe">
+                    🧮 電卓 (Span要素)
+                </span>
+            </div>
+
+            <button class="launcher-btn" data-command="start https://google.com">
+                🌐 Google
+            </button>
+            
+        </div>
+    ]]></layout>
+</config>

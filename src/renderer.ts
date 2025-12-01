@@ -1,12 +1,5 @@
-// preload.ts で定義した型と合わせるためのアンビエント宣言
-// これがないと window.myAPI で「そんなプロパティないよ」と怒られます
-interface LauncherButton {
-  label: string;
-  command: string;
-}
-
 interface IMyAPI {
-  loadConfig: () => Promise<LauncherButton[]>;
+  loadConfig: () => Promise<string>;
   runCommand: (command: string) => Promise<void>;
 }
 
@@ -21,18 +14,22 @@ const appDiv = document.getElementById("app");
 window.addEventListener("DOMContentLoaded", async () => {
   if (!appDiv) return;
 
-  const buttons = await window.myAPI.loadConfig();
+  // HTML文字列をそのまま流し込む
+  const htmlContent = await window.myAPI.loadConfig();
+  appDiv.innerHTML = htmlContent;
 
-  buttons.forEach((btnData) => {
-    const btn = document.createElement("button");
-    btn.className = "launcher-btn";
-    btn.innerHTML = btnData.label;
-
-    btn.onclick = async () => {
-      console.log("実行コマンド:", btnData.command);
-      await window.myAPI.runCommand(btnData.command);
-    };
-
-    appDiv.appendChild(btn);
+  // data-command 属性を持つ全ての要素にイベントリスナーを付与する
+  const commandElements = appDiv.querySelectorAll("[data-command]");
+  commandElements.forEach((element) => {
+    const el = element as HTMLElement;
+    const command = el.getAttribute("data-command");
+    if (command) {
+      el.style.cursor = "pointer";
+      el.addEventListener("click", async (e) => {
+        e.preventDefault();
+        console.log(`実行コマンド: ${command}`);
+        await window.myAPI.runCommand(command);
+      });
+    }
   });
 });
