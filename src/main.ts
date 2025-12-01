@@ -10,6 +10,16 @@ import { XmlStructure, IpcChannels } from "./types.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const getConfigPath = () => {
+  if (app.isPackaged) {
+    // 本番: exeと同じ階層にある resources フォルダの中を見る
+    return path.join(process.resourcesPath, "config.xml");
+  } else {
+    // 開発中は内部設定に従う
+    return path.join(__dirname, FILE_PATH.configXml);
+  }
+};
+
 const injectCdata = (xmlString: string, tag: string): string => {
   // <tag> と </tag> の間のあらゆる文字を取得し、CDATAで囲んで置換
   const regex = new RegExp(`(<${tag}>)([\\s\\S]*?)(<\/${tag}>)`, "gi");
@@ -24,7 +34,7 @@ const injectCdata = (xmlString: string, tag: string): string => {
 
 async function readConfigXml(): Promise<XmlStructure | null> {
   try {
-    const xmlPath = path.join(__dirname, FILE_PATH.configXml);
+    const xmlPath = getConfigPath();
     let xmlData = await fs.readFile(xmlPath, "utf8");
 
     // 外部で設定しているHTMLがそのまま読み込まれるようCDATA付与

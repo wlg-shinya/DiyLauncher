@@ -2,14 +2,37 @@
   "name": "diy-launcher",
   "version": "0.0.1",
   "description": "",
+  "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "start": "tsc && electron ."
+    "build": "tsc",
+    "start": "tsc && electron .",
+    "release": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "wlg-shinya",
   "license": "MIT",
-  "type": "module",
+  "build": {
+    "appId": "com.welovegamesinc.diy-launcher",
+    "productName": "DiyLauncher",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "index.html"
+    ],
+    "extraResources": [
+      {
+        "from": "config.xml",
+        "to": "config.xml"
+      }
+    ],
+    "win": {
+      "target": "zip",
+      "icon": "icon.ico"
+    }
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "electron": "^39.2.4",
