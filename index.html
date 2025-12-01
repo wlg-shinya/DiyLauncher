@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Launcher</title>
+  </head>
+  <body>
+    <h1>Launcher App</h1>
+    <button id="btn">テストコマンド実行</button>
+    <div id="log"></div>
+
+    <script>
+      document.getElementById("btn").addEventListener("click", async () => {
+        const result = await window.myAPI.runCommand("notepad.exe");
+        document.getElementById("log").innerText = result;
+      });
+    </script>
+  </body>
+</html>
