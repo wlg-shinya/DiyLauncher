@@ -6,30 +6,13 @@ declare global {
   }
 }
 
-const appDiv = document.getElementById("app");
-
 window.addEventListener("DOMContentLoaded", async () => {
-  if (!appDiv) return;
+  const { head, body } = await window.myAPI.loadConfig();
 
-  const { title, css, html } = await window.myAPI.loadConfig();
+  document.head.innerHTML = head;
+  document.body.innerHTML = body;
 
-  // タイトルを反映
-  document.title = title;
-
-  // CSSを適用する
-  const userCustomStyleName = "user-custom-style";
-  const userCustomStyle = document.getElementById(userCustomStyleName);
-  if (userCustomStyle) userCustomStyle.remove();
-  const styleTag = document.createElement("style");
-  styleTag.id = userCustomStyleName;
-  styleTag.textContent = css;
-  document.head.appendChild(styleTag);
-
-  // HTML文字列をそのまま流し込む
-  appDiv.innerHTML = html;
-
-  // data-command 属性を持つ全ての要素にイベントリスナーを付与する
-  const commandElements = appDiv.querySelectorAll("[data-command]");
+  const commandElements = document.body.querySelectorAll("[data-command]");
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
     const command = el.getAttribute("data-command");

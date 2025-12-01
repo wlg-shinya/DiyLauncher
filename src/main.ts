@@ -28,7 +28,7 @@ async function readConfigXml(): Promise<XmlStructure | null> {
     let xmlData = await fs.readFile(xmlPath, "utf8");
 
     // 外部で設定しているHTMLがそのまま読み込まれるようCDATA付与
-    xmlData = injectCdata(xmlData, "style");
+    xmlData = injectCdata(xmlData, "head");
     xmlData = injectCdata(xmlData, "body");
 
     // XMLパース
@@ -43,6 +43,12 @@ async function readConfigXml(): Promise<XmlStructure | null> {
   }
 }
 
+function extractSetting(html: string, tag: string, defaultValue: number): number {
+  const regex = new RegExp(`<${tag}>\\s*(\\d+)\\s*<\/${tag}>`, "i");
+  const match = html.match(regex);
+  return match ? parseInt(match[1], 10) : defaultValue;
+}
+
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
   listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
@@ -52,12 +58,15 @@ const handleIpc = <K extends keyof IpcChannels>(
 
 async function createWindow() {
   const xmlObj = await readConfigXml();
-  const configHead = xmlObj?.config.head;
-  const width = configHead?.width ? Number(configHead.width) : 600;
-  const height = configHead?.height ? Number(configHead.height) : 500;
+  const headHtml = xmlObj?.config?.head?.__cdata || "";
+
+  // <width>, <height>を抽出
+  const width = extractSetting(headHtml, "width", 600);
+  const height = extractSetting(headHtml, "height", 500);
+
   const win = new BrowserWindow({
-    width: width,
-    height: height,
+    width,
+    height,
     webPreferences: {
       preload: path.join(__dirname, FILE_PATH.preload),
       sandbox: false,
@@ -75,17 +84,14 @@ app.whenReady().then(() => {
   handleIpc("load-config", async () => {
     try {
       const xmlObj = await readConfigXml();
-      const config = xmlObj?.config;
-      const appTitle = config?.head?.title || app.getName();
-      const styleCss = config?.head?.style?.__cdata || "";
-      const layoutHtml = config?.body?.__cdata || "<div>No Layout</div>";
+      const headHtml = xmlObj?.config?.head?.__cdata || "";
+      const bodyHtml = xmlObj?.config?.body?.__cdata || "<div>No Body</div>";
       return {
-        title: appTitle,
-        css: styleCss,
-        html: layoutHtml,
+        head: headHtml,
+        body: bodyHtml,
       };
     } catch (err) {
-      return { title: app.getName(), css: "", html: `<div>Error: ${err}</div>` };
+      return { head: "", body: `<div>Error: ${err}</div>` };
     }
   });
 

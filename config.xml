@@ -1,8 +1,12 @@
 <config>
     <head>
-        <title>DIY Launcher</title>
+        <!-- width, height は起動するアプリのウィンドウサイズです -->
         <width>800</width>
         <height>600</height>
+
+        <!-- ここの内容がそのままheadに適用されます -->
+        <meta charset="UTF-8" />
+        <title>DIY Launcher</title>
         <style>
             body { background-color: #222; color: #fff; }
             .grid-container { display: grid; gap: 10px; }
@@ -10,6 +14,8 @@
         </style>
     </head>
     <body>
+        <!-- ここの内容がそのままbodyに適用されます -->
+        <!-- data-commandで記述されたコマンドをOSで実行します -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="notepad.exe">
                 📝 メモ帳
