@@ -12,5 +12,8 @@
   "type": "module",
   "devDependencies": {
     "electron": "^39.2.4"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.3.2"
   }
 }
