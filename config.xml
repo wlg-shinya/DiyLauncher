@@ -2,7 +2,7 @@
     <title>DIY Launcher</title>
     <width>800</width>
     <height>600</height>
-    <style><![CDATA[
+    <style>
         /* 全体の背景 */
         body { 
             background-color: #222; 
@@ -40,8 +40,8 @@
             color: #4da6ff;
             font-weight: bold;
         }
-    ]]></style>
-    <layout><![CDATA[
+    </style>
+    <layout>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             
             <button class="launcher-btn" data-command="notepad.exe">
@@ -60,5 +60,5 @@
             </button>
             
         </div>
-    ]]></layout>
+    </layout>
 </config>

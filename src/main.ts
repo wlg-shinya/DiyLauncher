@@ -5,21 +5,37 @@ import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import { XMLParser } from "fast-xml-parser";
 import { FILE_PATH } from "./constants.js";
-import { XmlStructure, ConfigData, IpcChannels } from "./types.js";
+import { XmlStructure, IpcChannels } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const injectCdata = (xmlString: string, tag: string): string => {
+  // <tag> と </tag> の間のあらゆる文字を取得し、CDATAで囲んで置換
+  const regex = new RegExp(`(<${tag}>)([\\s\\S]*?)(<\/${tag}>)`, "gi");
+  return xmlString.replace(regex, (match, openTag, content, closeTag) => {
+    // 既にCDATAがある場合は二重にならないように配慮（念のため）
+    if (content.trim().startsWith("<![CDATA[")) {
+      return match;
+    }
+    return `${openTag}<![CDATA[${content}]]>${closeTag}`;
+  });
+};
+
 async function readConfigXml(): Promise<XmlStructure | null> {
   try {
     const xmlPath = path.join(__dirname, FILE_PATH.configXml);
-    const xmlData = await fs.readFile(xmlPath, "utf8");
+    let xmlData = await fs.readFile(xmlPath, "utf8");
 
+    // 外部で設定しているHTMLがそのまま読み込まれるようCDATA付与
+    xmlData = injectCdata(xmlData, "style");
+    xmlData = injectCdata(xmlData, "layout");
+
+    // XMLパース
     const parser = new XMLParser({
       ignoreAttributes: false,
       cdataPropName: "__cdata",
     });
-
     return parser.parse(xmlData) as XmlStructure;
   } catch (err) {
     console.error("Config読み込み失敗:", err);
