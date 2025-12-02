@@ -78,8 +78,8 @@ app.whenReady().then(async () => {
       try {
         const filePath = getLogPath(logFile);
         logStream = fsCallback.createWriteStream(filePath, { flags: "a" });
-        const time = new Date().toLocaleString();
-        logStream.write(`\n--- [${time}] Command: ${command} ---\n`);
+        const now = new Date().toLocaleString();
+        logStream.write(`\n--- [${now}] ${command} ---\n`);
       } catch (err) {
         console.error("ログファイル作成失敗:", err);
       }

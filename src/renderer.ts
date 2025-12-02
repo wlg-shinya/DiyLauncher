@@ -31,7 +31,8 @@ function renderApp(data: ConfigData) {
         if (targetId) {
           const targetEl = document.getElementById(targetId);
           if (targetEl && "value" in targetEl) {
-            (targetEl as HTMLTextAreaElement).value = `\n> ${command}\n`;
+            const now = new Date().toLocaleString();
+            (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${command}\n`;
           }
         }
         console.log(`実行コマンド: ${command}`);
