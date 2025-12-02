@@ -2,3 +2,6 @@ node_modules
 .DS_Store
 dist
 package
+
+# config.default.xmlをベースに自動生成されるため無視
+config.xml
