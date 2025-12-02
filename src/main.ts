@@ -1,9 +1,18 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
 import fsCallback from "node:fs";
+import path from "node:path";
+import iconv from "iconv-lite";
 import { FILE_PATH } from "./constants.js";
 import { IpcChannels } from "./types.js";
-import { ensureConfigExists, readConfig, extractConfigCustomSetting, getConfigPath, convertToConfigData } from "./config_helper.js";
+import {
+  ensureConfigExists,
+  readConfig,
+  extractConfigCustomSetting,
+  getConfigPath,
+  convertToConfigData,
+  setupConfigWatcher,
+} from "./config_helper.js";
 
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
@@ -12,41 +21,16 @@ const handleIpc = <K extends keyof IpcChannels>(
   ipcMain.handle(channel, listener);
 };
 
-function setupConfigWatcher(win: BrowserWindow) {
-  const configPath = getConfigPath();
-  let fsWait = false;
+const getLogPath = (filename: string): string => {
+  // config.xml と同じ階層にある logs フォルダを使用
+  const baseDir = path.dirname(getConfigPath());
+  const logsDir = path.join(baseDir, "logs");
 
-  fsCallback.watch(configPath, async (event) => {
-    if (fsWait) return;
-
-    if (event === "change") {
-      fsWait = true;
-      // 連続発火防止 (デバウンス処理)
-      setTimeout(async () => {
-        fsWait = false;
-        console.log("Config updated detected.");
-
-        // 設定を読み直す
-        const xmlObj = await readConfig();
-
-        // ウィンドウサイズの更新処理
-        const headHtml = xmlObj?.config?.head?.__cdata || "";
-        const newWidth = extractConfigCustomSetting(headHtml, "width", 600);
-        const newHeight = extractConfigCustomSetting(headHtml, "height", 500);
-
-        // 現在のサイズと違えば変更する (アニメーションOFFで即時反映)
-        const [currentW, currentH] = win.getSize();
-        if (currentW !== newWidth || currentH !== newHeight) {
-          win.setSize(newWidth, newHeight, false);
-        }
-
-        // 画面に送信
-        const configData = convertToConfigData(xmlObj);
-        win.webContents.send("on-config-updated", configData);
-      }, 100);
-    }
-  });
-}
+  if (!fsCallback.existsSync(logsDir)) {
+    fsCallback.mkdirSync(logsDir);
+  }
+  return path.join(logsDir, filename);
+};
 
 async function createWindow() {
   const xmlObj = await readConfig();
@@ -82,13 +66,60 @@ app.whenReady().then(async () => {
     return convertToConfigData(xmlObj);
   });
 
-  handleIpc("run-os-command", async (_event, command: string) => {
+  handleIpc("run-os-command", async (event, command, targetId, logFile) => {
     console.log(`実行: ${command}`);
-    return new Promise<void>((resolve) => {
-      exec(command, (error) => {
-        if (error) console.error(error);
-        resolve();
-      });
+
+    // shell: true で実行 (dirコマンド等が動くように)
+    const child = spawn(command, { shell: true });
+
+    // ログファイルへの書き込みストリーム準備
+    let logStream: fsCallback.WriteStream | null = null;
+    if (logFile) {
+      try {
+        const filePath = getLogPath(logFile);
+        logStream = fsCallback.createWriteStream(filePath, { flags: "a" });
+        const time = new Date().toLocaleString();
+        logStream.write(`\n--- [${time}] Command: ${command} ---\n`);
+      } catch (err) {
+        console.error("ログファイル作成失敗:", err);
+      }
+    }
+
+    // 出力処理共通化
+    const sendOutput = (text: string, type: "stdout" | "stderr" | "exit") => {
+      console.log(`[Main] データ送信: ${type} -> ${text.trim().substring(0, 20)}...`); // ★ログ2
+
+      // 画面へ送信 (UTF-8化済み)
+      if (targetId) {
+        event.sender.send("on-command-output", { targetId, text, type });
+      }
+
+      // ログファイルへ保存 (Node.jsが自動でUTF-8で書き込む)
+      if (logStream) {
+        if (type !== "exit") logStream.write(text);
+        else logStream.write(`\n[Exited]\n`);
+      }
+    };
+
+    // 標準出力 (文字化け対策込み)
+    child.stdout.on("data", (data: Buffer) => {
+      // WindowsならCP932(Shift-JIS)、それ以外はUTF-8としてデコード
+      const encoding = process.platform === "win32" ? "cp932" : "utf8";
+      const str = iconv.decode(data, encoding);
+      sendOutput(str, "stdout");
+    });
+
+    // エラー出力
+    child.stderr.on("data", (data: Buffer) => {
+      const encoding = process.platform === "win32" ? "cp932" : "utf8";
+      const str = iconv.decode(data, encoding);
+      sendOutput(str, "stderr");
+    });
+
+    // 終了時
+    child.on("close", (code) => {
+      sendOutput(`Process exited with code ${code}`, "exit");
+      if (logStream) logStream.end();
     });
   });
 

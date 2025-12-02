@@ -1,4 +1,4 @@
-import { MyAPI, ConfigData } from "./types.js";
+import { MyAPI, ConfigData, CommandOutput } from "./types.js";
 
 declare global {
   interface Window {
@@ -9,33 +9,64 @@ declare global {
 function renderApp(data: ConfigData) {
   const { head, body } = data;
 
+  // HTMLの更新
   document.head.innerHTML = head;
   document.body.innerHTML = body;
 
+  // コマンドボタンのイベント設定
   const commandElements = document.body.querySelectorAll("[data-command]");
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
+
     const command = el.getAttribute("data-command");
+    const targetId = el.getAttribute("data-output") || undefined;
+    const logFile = el.getAttribute("data-log") || undefined;
+
     if (command) {
       el.style.cursor = "pointer";
-      // イベントリスナーの重複登録を防ぐため、HTML書き換え直後なら単純追加でOK
+
+      // クリックイベント
       el.addEventListener("click", async (e) => {
         e.preventDefault();
+        if (targetId) {
+          const targetEl = document.getElementById(targetId);
+          if (targetEl && "value" in targetEl) {
+            (targetEl as HTMLTextAreaElement).value = `\n> ${command}\n`;
+          }
+        }
         console.log(`実行コマンド: ${command}`);
-        await window.myAPI.runCommand(command);
+        await window.myAPI.runCommand(command, targetId, logFile);
       });
     }
   });
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // 初回ロード
+  // 初期ロード
   const initialData = await window.myAPI.loadConfig();
   renderApp(initialData);
 
-  // 更新通知を受け取ったら再描画
+  // 設定ファイル更新時のホットリロード
   window.myAPI.onConfigUpdate((newData) => {
-    console.log("設定ファイルが更新されました。画面をリロードします。");
+    console.log("設定が更新されました。画面をリロードします。");
     renderApp(newData);
+  });
+
+  // コマンド出力を受け取って表示
+  window.myAPI.onCommandOutput((data: CommandOutput) => {
+    const targetEl = document.getElementById(data.targetId);
+    if (!targetEl) return;
+
+    // <textarea> や <input> の場合
+    if ("value" in targetEl) {
+      const inputEl = targetEl as HTMLTextAreaElement;
+      inputEl.value += data.text;
+      inputEl.scrollTop = inputEl.scrollHeight; // 常に一番下へスクロール
+    }
+    // <div> や <span> などの場合
+    else {
+      // 簡易的な追記（改行コードはHTMLでは無視されるため preタグ推奨）
+      targetEl.innerText += data.text;
+    }
   });
 });

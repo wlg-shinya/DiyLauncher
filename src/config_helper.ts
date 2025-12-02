@@ -1,10 +1,12 @@
-import { app } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import fs from "node:fs/promises";
+import fsCallback from "node:fs";
 import { XMLParser } from "fast-xml-parser";
 import { ROOT_PATH } from "./constants.js";
 import { XmlStructure, ConfigData } from "./types.js";
 
+// CDATA注入
 function injectCdata(xmlString: string, tag: string): string {
   // <tag> と </tag> の間のあらゆる文字を取得し、CDATAで囲んで置換
   const regex = new RegExp(`(<${tag}>)([\\s\\S]*?)(<\/${tag}>)`, "gi");
@@ -17,6 +19,7 @@ function injectCdata(xmlString: string, tag: string): string {
   });
 }
 
+// 設定ファイルへのパス取得
 export function getConfigPath(): string {
   if (app.isPackaged) {
     // 本番はexeと同じ階層にある resources フォルダの中を見る
@@ -27,6 +30,7 @@ export function getConfigPath(): string {
   }
 }
 
+// 設定ファイルがなければ作成する
 export async function ensureConfigExists() {
   const resourcePath = app.isPackaged ? process.resourcesPath : ROOT_PATH;
   const configPath = path.join(resourcePath, "config.xml");
@@ -45,6 +49,7 @@ export async function ensureConfigExists() {
   }
 }
 
+// 設定ファイルの読み込み
 export async function readConfig(): Promise<XmlStructure | null> {
   try {
     const xmlPath = getConfigPath();
@@ -66,12 +71,14 @@ export async function readConfig(): Promise<XmlStructure | null> {
   }
 }
 
+// 設定ファイルのカスタム設定を抽出
 export function extractConfigCustomSetting(html: string, tag: string, defaultValue: number): number {
   const regex = new RegExp(`<${tag}>\\s*(\\d+)\\s*<\/${tag}>`, "i");
   const match = html.match(regex);
   return match ? parseInt(match[1], 10) : defaultValue;
 }
 
+// XMLを設定ファイルのデータ構造に変換
 export function convertToConfigData(xmlObj: XmlStructure | null): ConfigData {
   const headHtml = xmlObj?.config?.head?.__cdata || "";
   const bodyHtml = xmlObj?.config?.body?.__cdata || "<div>No Body</div>";
@@ -79,4 +86,41 @@ export function convertToConfigData(xmlObj: XmlStructure | null): ConfigData {
     head: headHtml,
     body: bodyHtml,
   };
+}
+
+// 設定ファイルホットリロードのためのセットアップ
+export function setupConfigWatcher(win: BrowserWindow) {
+  const configPath = getConfigPath();
+  let fsWait = false;
+
+  fsCallback.watch(configPath, async (event) => {
+    if (fsWait) return;
+
+    if (event === "change") {
+      fsWait = true;
+      // 連続発火防止 (デバウンス処理)
+      setTimeout(async () => {
+        fsWait = false;
+        console.log("Config updated detected.");
+
+        // 設定を読み直す
+        const xmlObj = await readConfig();
+
+        // ウィンドウサイズの更新処理
+        const headHtml = xmlObj?.config?.head?.__cdata || "";
+        const newWidth = extractConfigCustomSetting(headHtml, "width", 600);
+        const newHeight = extractConfigCustomSetting(headHtml, "height", 500);
+
+        // 現在のサイズと違えば変更する (アニメーションOFFで即時反映)
+        const [currentW, currentH] = win.getSize();
+        if (currentW !== newWidth || currentH !== newHeight) {
+          win.setSize(newWidth, newHeight, false);
+        }
+
+        // 画面に送信
+        const configData = convertToConfigData(xmlObj);
+        win.webContents.send("on-config-updated", configData);
+      }, 100);
+    }
+  });
 }

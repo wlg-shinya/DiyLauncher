@@ -1,7 +1,12 @@
 node_modules
 .DS_Store
+
+# ビルド成果物置き場
 dist
 package
 
-# config.default.xmlをベースに自動生成されるため無視
+# 開発実行時のログ出力先
+logs
+
+# config.default.xmlをベースに自動生成されるファイル
 config.xml
