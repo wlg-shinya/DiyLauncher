@@ -16,11 +16,9 @@ function setupConfigWatcher(win: BrowserWindow) {
   const configPath = getConfigPath();
   let fsWait = false;
 
-  // ファイル変更を監視
   fsCallback.watch(configPath, async (event) => {
     if (fsWait) return;
 
-    // "change" イベントのみ反応させる
     if (event === "change") {
       fsWait = true;
       // 連続発火防止 (デバウンス処理)
@@ -28,11 +26,22 @@ function setupConfigWatcher(win: BrowserWindow) {
         fsWait = false;
         console.log("Config updated detected.");
 
-        // 設定を読み直して変換
+        // 設定を読み直す
         const xmlObj = await readConfig();
-        const configData = convertToConfigData(xmlObj);
+
+        // ウィンドウサイズの更新処理
+        const headHtml = xmlObj?.config?.head?.__cdata || "";
+        const newWidth = extractConfigCustomSetting(headHtml, "width", 600);
+        const newHeight = extractConfigCustomSetting(headHtml, "height", 500);
+
+        // 現在のサイズと違えば変更する (アニメーションOFFで即時反映)
+        const [currentW, currentH] = win.getSize();
+        if (currentW !== newWidth || currentH !== newHeight) {
+          win.setSize(newWidth, newHeight, false);
+        }
 
         // 画面に送信
+        const configData = convertToConfigData(xmlObj);
         win.webContents.send("on-config-updated", configData);
       }, 100);
     }
