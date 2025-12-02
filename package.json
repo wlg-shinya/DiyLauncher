@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "tsc && electron .",
+    "start": "chcp 65001 > nul && tsc && electron .",
     "pack": "npm run build && electron-builder --dir",
     "pack-release": "npm run build && electron-builder",
     "pack-clean": "rm -rf ./package"

@@ -71,7 +71,7 @@
             </button>
         </div>
 
-        <!-- idにdata-outputで記述された文字列を設定するとコマンド出力ログを値として設定します -->
+        <!-- idにdata-outputで記述された文字列を設定するとコマンド出力ログを表示します -->
         <textarea id="console-log" readonly placeholder="ここにコマンドの実行結果が表示されます..."></textarea>
     </body>
 </config>
