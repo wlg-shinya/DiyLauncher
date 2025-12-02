@@ -2,8 +2,8 @@ import { app } from "electron";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { XMLParser } from "fast-xml-parser";
-import { FILE_PATH, ROOT_PATH } from "./constants.js";
-import { XmlStructure } from "./types.js";
+import { ROOT_PATH } from "./constants.js";
+import { XmlStructure, ConfigData } from "./types.js";
 
 function injectCdata(xmlString: string, tag: string): string {
   // <tag> と </tag> の間のあらゆる文字を取得し、CDATAで囲んで置換
@@ -17,7 +17,7 @@ function injectCdata(xmlString: string, tag: string): string {
   });
 }
 
-function getConfigPath(): string {
+export function getConfigPath(): string {
   if (app.isPackaged) {
     // 本番はexeと同じ階層にある resources フォルダの中を見る
     return path.join(process.resourcesPath, "config.xml");
@@ -70,4 +70,13 @@ export function extractConfigCustomSetting(html: string, tag: string, defaultVal
   const regex = new RegExp(`<${tag}>\\s*(\\d+)\\s*<\/${tag}>`, "i");
   const match = html.match(regex);
   return match ? parseInt(match[1], 10) : defaultValue;
+}
+
+export function convertToConfigData(xmlObj: XmlStructure | null): ConfigData {
+  const headHtml = xmlObj?.config?.head?.__cdata || "";
+  const bodyHtml = xmlObj?.config?.body?.__cdata || "<div>No Body</div>";
+  return {
+    head: headHtml,
+    body: bodyHtml,
+  };
 }

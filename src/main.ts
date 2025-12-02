@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import { exec } from "node:child_process";
+import fsCallback from "node:fs";
 import { FILE_PATH } from "./constants.js";
 import { IpcChannels } from "./types.js";
-import { ensureConfigExists, readConfig, extractConfigCustomSetting } from "./config_helper.js";
+import { ensureConfigExists, readConfig, extractConfigCustomSetting, getConfigPath, convertToConfigData } from "./config_helper.js";
 
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
@@ -10,6 +11,33 @@ const handleIpc = <K extends keyof IpcChannels>(
 ) => {
   ipcMain.handle(channel, listener);
 };
+
+function setupConfigWatcher(win: BrowserWindow) {
+  const configPath = getConfigPath();
+  let fsWait = false;
+
+  // ファイル変更を監視
+  fsCallback.watch(configPath, async (event) => {
+    if (fsWait) return;
+
+    // "change" イベントのみ反応させる
+    if (event === "change") {
+      fsWait = true;
+      // 連続発火防止 (デバウンス処理)
+      setTimeout(async () => {
+        fsWait = false;
+        console.log("Config updated detected.");
+
+        // 設定を読み直して変換
+        const xmlObj = await readConfig();
+        const configData = convertToConfigData(xmlObj);
+
+        // 画面に送信
+        win.webContents.send("on-config-updated", configData);
+      }, 100);
+    }
+  });
+}
 
 async function createWindow() {
   const xmlObj = await readConfig();
@@ -30,6 +58,9 @@ async function createWindow() {
     },
   });
 
+  // 設定ファイルの監視によるホットリロード
+  setupConfigWatcher(win);
+
   win.loadFile(FILE_PATH.indexHtml);
 }
 
@@ -38,17 +69,8 @@ app.whenReady().then(async () => {
   await createWindow();
 
   handleIpc("load-config", async () => {
-    try {
-      const xmlObj = await readConfig();
-      const headHtml = xmlObj?.config?.head?.__cdata || "";
-      const bodyHtml = xmlObj?.config?.body?.__cdata || "<div>No Body</div>";
-      return {
-        head: headHtml,
-        body: bodyHtml,
-      };
-    } catch (err) {
-      return { head: "", body: `<div>Error: ${err}</div>` };
-    }
+    const xmlObj = await readConfig();
+    return convertToConfigData(xmlObj);
   });
 
   handleIpc("run-os-command", async (_event, command: string) => {

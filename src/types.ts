@@ -16,11 +16,14 @@ export interface ConfigData {
 export interface IpcChannels {
   "load-config": () => ConfigData;
   "run-os-command": (command: string) => void;
+  "on-config-updated": (data: ConfigData) => void;
 }
 
 // preloadで橋渡ししているAPI
 type ApiMethod<K extends keyof IpcChannels> = (...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>>;
+type ApiListener<K extends keyof IpcChannels> = (callback: (...args: Parameters<IpcChannels[K]>) => void) => void;
 export interface MyAPI {
   loadConfig: ApiMethod<"load-config">;
   runCommand: ApiMethod<"run-os-command">;
+  onConfigUpdate: ApiListener<"on-config-updated">;
 }
