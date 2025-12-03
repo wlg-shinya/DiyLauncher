@@ -22,7 +22,7 @@ export interface CommandOutput {
 // IPC通信チャンネル名と型定義のマップ
 export interface IpcChannels {
   "load-config": () => ConfigData;
-  "run-os-command": (command: string, targetId?: string, logFile?: string) => void;
+  "run-os-command": (command: string, logId?: string, logFile?: string) => void;
   "on-command-output": (data: CommandOutput) => void;
   "on-config-updated": (data: ConfigData) => void;
 }

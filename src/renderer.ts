@@ -19,8 +19,8 @@ function renderApp(data: ConfigData) {
     const el = element as HTMLElement;
 
     const command = el.getAttribute("data-command");
-    const targetId = el.getAttribute("data-output") || undefined;
-    const logFile = el.getAttribute("data-log") || undefined;
+    const targetId = el.getAttribute("data-command-log-id") || undefined;
+    const logFile = el.getAttribute("data-command-log-file") || undefined;
 
     if (command) {
       el.style.cursor = "pointer";
