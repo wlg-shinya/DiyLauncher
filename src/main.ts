@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import { spawn } from "node:child_process";
-import iconv from "iconv-lite";
 import { FILE_PATH } from "./constants.js";
 import { IpcChannels } from "./types.js";
 import { ensureConfigExists, readConfig, extractConfigCustomSetting, convertToConfigData, setupConfigWatcher } from "./config_helper.js";
@@ -69,17 +68,13 @@ app.whenReady().then(async () => {
 
     // 標準出力
     child.stdout.on("data", (data: Buffer) => {
-      // chcp 65001をしている場合、基本的には utf8 で来るはずですが、
-      // 既存ロジック(iconv)を維持して柔軟に対応します
-      const encoding = process.platform === "win32" ? "cp932" : "utf8";
-      const str = iconv.decode(data, encoding);
+      const str = data.toString();
       sendOutput(str, "stdout");
     });
 
     // エラー出力
     child.stderr.on("data", (data: Buffer) => {
-      const encoding = process.platform === "win32" ? "cp932" : "utf8";
-      const str = iconv.decode(data, encoding);
+      const str = data.toString();
       sendOutput(str, "stderr");
     });
 
