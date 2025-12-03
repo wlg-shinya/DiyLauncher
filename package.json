@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "chcp 65001 > nul && tsc && electron .",
+    "clean": "rm -rf dist logs config.xml",
     "pack": "npm run build && electron-builder --dir",
     "pack-release": "npm run build && electron-builder",
     "pack-clean": "rm -rf ./package"
