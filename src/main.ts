@@ -31,6 +31,10 @@ async function createWindow() {
     },
   });
 
+  if (app.isPackaged) {
+    win.setMenu(null);
+  }
+
   // 設定ファイルの監視によるホットリロード
   setupConfigWatcher(win);
 
