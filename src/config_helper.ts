@@ -101,7 +101,7 @@ export function setupConfigWatcher(win: BrowserWindow) {
       // 連続発火防止 (デバウンス処理)
       setTimeout(async () => {
         fsWait = false;
-        console.log("Config updated detected.");
+        console.log("設定が更新されました。");
 
         // 設定を読み直す
         const xmlObj = await readConfig();
