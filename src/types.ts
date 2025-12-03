@@ -10,6 +10,7 @@ export interface XmlStructure {
 export interface ConfigData {
   head: string;
   body: string;
+  version: string;
 }
 
 // コマンド出力データ

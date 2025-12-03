@@ -85,6 +85,7 @@ export function convertToConfigData(xmlObj: XmlStructure | null): ConfigData {
   return {
     head: headHtml,
     body: bodyHtml,
+    version: app.getVersion(),
   };
 }
 
