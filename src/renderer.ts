@@ -25,10 +25,11 @@ function resolveCommandPlaceholders(commandTemplate: string): string {
 }
 
 function renderApp(data: ConfigData) {
-  const { head, body } = data;
+  const { head, body, version } = data;
 
   // HTMLの更新
-  document.head.innerHTML = head;
+  const processedHead = head.replace(/\{\{package_version\}\}/g, version);
+  document.head.innerHTML = processedHead;
   document.body.innerHTML = body;
 
   // コマンドボタンのイベント設定

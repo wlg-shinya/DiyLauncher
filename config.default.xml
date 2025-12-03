@@ -6,7 +6,7 @@
 
         <!-- ここの内容がそのままheadに適用されます -->
         <meta charset="UTF-8" />
-        <title>DIY Launcher</title>
+        <title>DIY Launcher {{package_version}}</title>
         <style>
             body { 
                 background-color: #222; 
