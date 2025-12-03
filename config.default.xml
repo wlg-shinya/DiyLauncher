@@ -66,7 +66,7 @@
             <button class="launcher-btn" 
                 data-command="ping google.com -n 3" 
                 data-command-log-id="console-log" 
-                data-command-log-file="ping_result.log">
+                data-command-log-file="logs/ping_result.log">
                 📡 Ping Test (Log & File)
             </button>
         </div>

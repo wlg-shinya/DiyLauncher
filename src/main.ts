@@ -1,35 +1,17 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import { spawn } from "node:child_process";
 import fsCallback from "node:fs";
-import path from "node:path";
 import iconv from "iconv-lite";
 import { FILE_PATH } from "./constants.js";
 import { IpcChannels } from "./types.js";
-import {
-  ensureConfigExists,
-  readConfig,
-  extractConfigCustomSetting,
-  getConfigPath,
-  convertToConfigData,
-  setupConfigWatcher,
-} from "./config_helper.js";
+import { ensureConfigExists, readConfig, extractConfigCustomSetting, convertToConfigData, setupConfigWatcher } from "./config_helper.js";
+import { resolveLogPath } from "./log_helper.js";
 
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
   listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
 ) => {
   ipcMain.handle(channel, listener);
-};
-
-const getLogPath = (filename: string): string => {
-  // config.xml と同じ階層にある logs フォルダを使用
-  const baseDir = path.dirname(getConfigPath());
-  const logsDir = path.join(baseDir, "logs");
-
-  if (!fsCallback.existsSync(logsDir)) {
-    fsCallback.mkdirSync(logsDir);
-  }
-  return path.join(logsDir, filename);
 };
 
 async function createWindow() {
@@ -66,20 +48,24 @@ app.whenReady().then(async () => {
     return convertToConfigData(xmlObj);
   });
 
-  handleIpc("run-os-command", async (event, command, targetId, logFile) => {
+  handleIpc("run-os-command", async (event, command, logId, logFile) => {
     console.log(`実行: ${command}`);
 
-    // shell: true で実行 (dirコマンド等が動くように)
-    const child = spawn(command, { shell: true });
+    // 文字コード設定 (Windows用)
+    let execCommand = command;
+    if (process.platform === "win32") {
+      execCommand = `chcp 65001 > nul && ${command}`;
+    }
 
-    // ログファイルへの書き込みストリーム準備
+    const child = spawn(execCommand, { shell: true });
+
     let logStream: fsCallback.WriteStream | null = null;
     if (logFile) {
       try {
-        const filePath = getLogPath(logFile);
+        const filePath = resolveLogPath(logFile);
         logStream = fsCallback.createWriteStream(filePath, { flags: "a" });
         const now = new Date().toLocaleString();
-        logStream.write(`\n--- [${now}] ${command} ---\n`);
+        logStream.write(`\n--- [${now}] Command: ${command} ---\n`);
       } catch (err) {
         console.error("ログファイル作成失敗:", err);
       }
@@ -90,8 +76,8 @@ app.whenReady().then(async () => {
       console.log(`[Main] データ送信: ${type} -> ${text.trim().substring(0, 20)}...`); // ★ログ2
 
       // 画面へ送信 (UTF-8化済み)
-      if (targetId) {
-        event.sender.send("on-command-output", { targetId, text, type });
+      if (logId) {
+        event.sender.send("on-command-output", { targetId: logId, text, type });
       }
 
       // ログファイルへ保存 (Node.jsが自動でUTF-8で書き込む)
