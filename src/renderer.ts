@@ -6,6 +6,24 @@ declare global {
   }
 }
 
+// config.xmk内の{{}}の解決
+function resolveCommandPlaceholders(commandTemplate: string): string {
+  // 正規表現: {{key}} の形を探す (最短一致)
+  return commandTemplate.replace(/\{\{(.*?)\}\}/g, (match, varName) => {
+    // data-var="varName" を持つ要素を探す
+    const inputEl = document.querySelector(`[data-var="${varName}"]`);
+
+    // 要素が見つかり、かつ value プロパティを持っていればその値を返す
+    if (inputEl && "value" in inputEl) {
+      return (inputEl as HTMLInputElement).value;
+    }
+
+    // 見つからない場合は警告を出して、置換せずそのままにする
+    console.warn(`Variable {{${varName}}} not found in elements with data-var="${varName}".`);
+    return match;
+  });
+}
+
 function renderApp(data: ConfigData) {
   const { head, body } = data;
 
@@ -17,26 +35,25 @@ function renderApp(data: ConfigData) {
   const commandElements = document.body.querySelectorAll("[data-command]");
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
-
-    const command = el.getAttribute("data-command");
+    const commandTemplate = el.getAttribute("data-command");
     const targetId = el.getAttribute("data-command-log-id") || undefined;
     const logFile = el.getAttribute("data-command-log-file") || undefined;
 
-    if (command) {
+    if (commandTemplate) {
       el.style.cursor = "pointer";
-
-      // クリックイベント
       el.addEventListener("click", async (e) => {
         e.preventDefault();
+        const finalCommand = resolveCommandPlaceholders(commandTemplate);
         if (targetId) {
           const targetEl = document.getElementById(targetId);
           if (targetEl && "value" in targetEl) {
             const now = new Date().toLocaleString();
-            (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${command}\n`;
+            (targetEl as HTMLTextAreaElement).value = `\n[${now}] > ${finalCommand}\n`;
           }
         }
-        console.log(`実行コマンド: ${command}`);
-        await window.myAPI.runCommand(command, targetId, logFile);
+
+        console.log(`実行コマンド: ${finalCommand}`);
+        await window.myAPI.runCommand(finalCommand, targetId, logFile);
       });
     }
   });
@@ -64,9 +81,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       inputEl.value += data.text;
       inputEl.scrollTop = inputEl.scrollHeight; // 常に一番下へスクロール
     }
-    // <div> や <span> などの場合
+    // 上記以外
     else {
-      // 簡易的な追記（改行コードはHTMLでは無視されるため preタグ推奨）
       targetEl.innerText += data.text;
     }
   });

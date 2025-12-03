@@ -45,6 +45,27 @@
                 border-radius: 4px;
                 resize: vertical;
             }
+
+            .input-section {
+                background: #333;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #444;
+                margin-bottom: 20px;
+            }
+            .input-section label {
+                font-weight: bold;
+                margin-right: 5px;
+                font-size: 14px;
+            }
+            .input-section input {
+                background: #111;
+                border: 1px solid #555;
+                color: #fff;
+                padding: 5px 8px;
+                border-radius: 3px;
+                margin-right: 15px;
+            }
         </style>
     </head>
     <body>
@@ -60,18 +81,26 @@
             </button>
         </div>
 
-        <!-- data-command-log-idで記述されたidを持つ<textarea>/<input>にコマンド出力ログを表示します -->
-        <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
-        <div class="grid-container">
-            <button class="launcher-btn" 
-                data-command="ping google.com -n 3" 
-                data-command-log-id="console-log" 
+        
+        <div class="input-section">
+            <div style="margin-bottom: 10px;">
+                <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
+                <label>Target:</label>
+                <input type="text" data-var="target_host" value="127.0.0.1" placeholder="IP or Host" />
+                <label>Count:</label>
+                <input type="number" data-var="ping_count" value="3" style="width: 50px;" />
+            </div>
+
+            <!-- data-command-log-idで記述されたidを持つ<textarea>/<input>にコマンド出力ログを表示します -->
+            <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
+            <button class="launcher-btn" style="width: 100%;"
+                data-command="ping {{target_host}} -n {{ping_count}}"
+                data-command-log-id="console-log"
                 data-command-log-file="logs/ping_result.log">
-                📡 Ping Test (Log & File)
+                ▶ Run Custom Ping
             </button>
         </div>
 
-        <!-- idにdata-command-log-idで記述された文字列を設定するとコマンド出力ログを表示します -->
-        <textarea id="console-log" readonly placeholder="ここにコマンドの実行結果が表示されます..."></textarea>
+        <textarea id="console-log" readonly></textarea>
     </body>
 </config>
