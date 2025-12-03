@@ -23,6 +23,7 @@ async function createWindow() {
   const win = new BrowserWindow({
     width,
     height,
+    icon: FILE_PATH.icon,
     webPreferences: {
       preload: FILE_PATH.preload,
       sandbox: false,

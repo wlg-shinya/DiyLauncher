@@ -14,4 +14,5 @@ export const ROOT_PATH = path.join(__dirname, "..");
 export const FILE_PATH = {
   preload: path.join(DIST_PATH, "preload.js"),
   indexHtml: path.join(ROOT_PATH, "index.html"),
+  icon: path.join(ROOT_PATH, "icon.ico"),
 } as const;
