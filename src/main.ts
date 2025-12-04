@@ -13,6 +13,16 @@ const handleIpc = <K extends keyof IpcChannels>(
   ipcMain.handle(channel, listener);
 };
 
+const decode = (buf: Buffer): string => {
+  // まずUTF-8として変換してみる
+  const strUtf8 = buf.toString("utf8");
+  // UTF-8として不正なバイト列があった場合、Shift-JIS(CP932)として解釈し直す
+  if (strUtf8.includes("\ufffd")) {
+    return iconv.decode(buf, "cp932");
+  }
+  return strUtf8;
+};
+
 async function createWindow() {
   const xmlObj = await readConfig();
   const headHtml = xmlObj?.config?.head?.__cdata || "";
@@ -55,40 +65,17 @@ app.whenReady().then(async () => {
   handleIpc("run-os-command", async (event, command, logId, logFile) => {
     console.log(`実行コマンド: ${command}`);
 
-    // 文字コード設定 (Windows用)
-    let execCommand = command;
-    if (process.platform === "win32") {
-      execCommand = `chcp 65001 > nul && ${command}`;
-    }
-
-    const child = spawn(execCommand, { shell: true });
+    const child = spawn(command, { shell: true });
     const logger = new CommandLogWriter(logFile, command);
 
-    // 出力処理共通化
     const sendOutput = (text: string, type: "stdout" | "stderr" | "exit") => {
       if (logId) {
         event.sender.send("on-command-output", { targetId: logId, text, type });
       }
       logger.write(text, type);
     };
-
-    // 標準出力
-    child.stdout.on("data", (data: Buffer) => {
-      // chcp 65001をしている場合、基本的には utf8 で来るはずですが、
-      // 既存ロジック(iconv)を維持して柔軟に対応します
-      const encoding = process.platform === "win32" ? "cp932" : "utf8";
-      const str = iconv.decode(data, encoding);
-      sendOutput(str, "stdout");
-    });
-
-    // エラー出力
-    child.stderr.on("data", (data: Buffer) => {
-      const encoding = process.platform === "win32" ? "cp932" : "utf8";
-      const str = iconv.decode(data, encoding);
-      sendOutput(str, "stderr");
-    });
-
-    // 終了時
+    child.stdout.on("data", (data: Buffer) => sendOutput(decode(data), "stdout"));
+    child.stderr.on("data", (data: Buffer) => sendOutput(decode(data), "stderr"));
     child.on("close", (code) => {
       sendOutput(`Process exited with code ${code}`, "exit");
       logger.close();
