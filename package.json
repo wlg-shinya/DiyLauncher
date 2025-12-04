@@ -49,6 +49,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.3.2"
+    "fast-xml-parser": "^5.3.2",
+    "iconv-lite": "^0.7.0"
   }
 }
