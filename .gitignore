@@ -10,3 +10,6 @@ logs
 
 # config.default.xmlをベースに自動生成されるファイル
 config.xml
+
+# ローカル限定エントリであることのマーク
+*.local*
