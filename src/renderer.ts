@@ -8,19 +8,18 @@ declare global {
 }
 
 // config.xmk内の{{}}の解決
-function resolveCommandPlaceholders(commandTemplate: string): string {
-  // 正規表現: {{key}} の形を探す (最短一致)
-  return commandTemplate.replace(/\{\{(.*?)\}\}/g, (match, varName) => {
+function resolveTemplate(template: string): string {
+  if (!template) return "";
+
+  return template.replace(/\{\{(.*?)\}\}/g, (match, varName) => {
+    // [data-var="..."] を探す
     const selector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
     const inputEl = document.querySelector(selector);
 
-    // 要素が見つかり、かつ value プロパティを持っていればその値を返す
     if (inputEl && "value" in inputEl) {
       return (inputEl as HTMLInputElement).value;
     }
-
-    // 見つからない場合は警告を出して、置換せずそのままにする
-    console.warn(`Variable {{${varName}}} not found in elements with ${CONFIG_ATTR.VAR}="${varName}".`);
+    // 見つからない場合は置換しない
     return match;
   });
 }
@@ -35,8 +34,17 @@ function renderApp(data: ConfigData) {
   document.head.innerHTML = processedHead;
   document.body.innerHTML = processedBody;
 
-  // 保存されていた値を復元する
+  // data-var (入力欄) のセットアップ
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
+  // 画面上の動的テキストを更新する
+  const updateDynamicView = () => {
+    // "data-template-text" 属性を持つ要素（＝{{}}を含んでいた要素）を探す
+    const dynamicElements = document.body.querySelectorAll("[data-template-text]");
+    dynamicElements.forEach((el) => {
+      const template = el.getAttribute("data-template-text") || "";
+      el.textContent = resolveTemplate(template);
+    });
+  };
   dataVarElements.forEach((element) => {
     const el = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
     const varName = el.getAttribute(CONFIG_ATTR.VAR);
@@ -52,6 +60,8 @@ function renderApp(data: ConfigData) {
       // 各種イベントごとにvalueをlocalStorageへ保存
       const saveValue = () => {
         localStorage.setItem(storageKey, el.value);
+        // 入力のたびに画面のテキスト表記も更新
+        updateDynamicView();
       };
       // input: テキストボックスなどで一文字打つごとに発火
       el.addEventListener("input", saveValue);
@@ -60,29 +70,45 @@ function renderApp(data: ConfigData) {
     }
   });
 
-  // コマンドボタンのイベント設定
+  // テキストノードの初期スキャン ({{}} を探す)
+  const allElements = document.body.getElementsByTagName("*");
+  for (let i = 0; i < allElements.length; i++) {
+    const el = allElements[i];
+    // 子要素を持たず、かつテキストに {{}} を含む場合
+    if (el.children.length === 0 && el.textContent && el.textContent.includes("{{")) {
+      // 元のテンプレートを属性として保存しておく
+      el.setAttribute("data-template-text", el.textContent);
+    }
+  }
+  // 初回描画
+  updateDynamicView();
+
+  // コマンドボタンのセットアップ
   const commandElements = document.body.querySelectorAll(`[${CONFIG_ATTR.COMMAND}]`);
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
+
+    // テンプレート(生の文字列)として取得
     const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
-    const targetId = el.getAttribute(CONFIG_ATTR.LOG_ID) || undefined;
-    const logFile = el.getAttribute(CONFIG_ATTR.LOG_FILE) || undefined;
+    const targetIdTemplate = el.getAttribute(CONFIG_ATTR.LOG_ID);
+    const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
 
     if (commandTemplate) {
       el.style.cursor = "pointer";
       el.addEventListener("click", async (e) => {
         e.preventDefault();
-        const finalCommand = resolveCommandPlaceholders(commandTemplate);
-        if (targetId) {
-          const targetEl = document.getElementById(targetId);
+        const finalCommand = resolveTemplate(commandTemplate);
+        const finalTargetId = targetIdTemplate ? resolveTemplate(targetIdTemplate) : undefined;
+        const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
+        if (finalTargetId) {
+          const targetEl = document.getElementById(finalTargetId);
           if (targetEl && "value" in targetEl) {
             const now = new Date().toLocaleString();
             (targetEl as HTMLTextAreaElement).value = `\n[${now}] > ${finalCommand}\n`;
           }
         }
 
-        console.log(`実行コマンド: ${finalCommand}`);
-        await window.myAPI.runCommand(finalCommand, targetId, logFile);
+        await window.myAPI.runCommand(finalCommand, finalTargetId, finalLogFile);
       });
     }
   });
@@ -95,7 +121,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // 設定ファイル更新時のホットリロード
   window.myAPI.onConfigUpdate((newData) => {
-    console.log("設定が更新されました。画面をリロードします。");
     renderApp(newData);
   });
 
