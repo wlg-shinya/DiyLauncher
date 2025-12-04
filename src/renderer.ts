@@ -32,6 +32,31 @@ function renderApp(data: ConfigData) {
   document.head.innerHTML = processedHead;
   document.body.innerHTML = body;
 
+  // 保存されていた値を復元する
+  const dataVarElements = document.body.querySelectorAll("[data-var]");
+  dataVarElements.forEach((element) => {
+    const el = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    const varName = el.getAttribute("data-var");
+    if (varName) {
+      const storageKey = `user_input_${varName}`;
+      const savedValue = localStorage.getItem(storageKey);
+
+      // 復元
+      if (savedValue !== null) {
+        el.value = savedValue;
+      }
+
+      // 各種イベントごとにvalueをlocalStorageへ保存
+      const saveValue = () => {
+        localStorage.setItem(storageKey, el.value);
+      };
+      // input: テキストボックスなどで一文字打つごとに発火
+      el.addEventListener("input", saveValue);
+      // change: selectボックスの変更や、フォーカスが外れた確定時に発火
+      el.addEventListener("change", saveValue);
+    }
+  });
+
   // コマンドボタンのイベント設定
   const commandElements = document.body.querySelectorAll("[data-command]");
   commandElements.forEach((element) => {
