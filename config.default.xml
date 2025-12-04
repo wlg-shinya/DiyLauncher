@@ -97,8 +97,8 @@
             <button class="launcher-btn" style="width: 100%;"
                 data-command="ping {{target_host}} -n {{ping_count}}"
                 data-command-log-id="console-log"
-                data-command-log-file="logs/ping_result.log">
-                ▶ Run Custom Ping
+                data-command-log-file="logs/ping_{{target_host}}.log">
+                ▶ ping {{target_host}} -n {{ping_count}}
             </button>
         </div>
 
