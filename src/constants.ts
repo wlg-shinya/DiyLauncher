@@ -1,18 +1,12 @@
-import { fileURLToPath } from "node:url";
-import path from "node:path";
+// config.xmlで使用するカスタム属性名の定義
+export const CONFIG_ATTR = {
+  COMMAND: "data-command",
+  LOG_ID: "data-command-log-id",
+  LOG_FILE: "data-command-log-file",
+  VAR: "data-var",
+} as const;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// distディレクトリパス
-export const DIST_PATH = __dirname;
-
-// プロジェクトルートパス
-export const ROOT_PATH = path.join(__dirname, "..");
-
-// 各種ファイルパス
-export const FILE_PATH = {
-  preload: path.join(DIST_PATH, "preload.js"),
-  indexHtml: path.join(ROOT_PATH, "index.html"),
-  icon: path.join(ROOT_PATH, "icon.ico"),
+// config.xmlで使用する変数の定義
+export const CONFIG_VAR = {
+  PACKAGE_VERSION: "package_version",
 } as const;

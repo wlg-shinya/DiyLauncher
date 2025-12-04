@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import fsCallback from "node:fs";
 import { XMLParser } from "fast-xml-parser";
-import { ROOT_PATH } from "./constants.js";
+import { ROOT_PATH } from "./file_paths.js";
 import { XmlStructure, ConfigData } from "./types.js";
 
 // CDATA注入

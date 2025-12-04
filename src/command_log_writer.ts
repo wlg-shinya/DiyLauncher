@@ -37,7 +37,7 @@ export class CommandLogWriter {
     }
   }
 
-  // data-command-log-fileで指定されたログファイルパスの解決
+  // CONFIG_ATTR.LOG_IDで指定されたログファイルパスの解決
   private resolveLogPath(userPath: string): string {
     const configDir = path.dirname(getConfigPath());
     const fullPath = path.join(configDir, userPath);

@@ -1,4 +1,5 @@
 import { MyAPI, ConfigData, CommandOutput } from "./types.js";
+import { CONFIG_ATTR, CONFIG_VAR } from "./constants.js";
 
 declare global {
   interface Window {
@@ -10,8 +11,8 @@ declare global {
 function resolveCommandPlaceholders(commandTemplate: string): string {
   // 正規表現: {{key}} の形を探す (最短一致)
   return commandTemplate.replace(/\{\{(.*?)\}\}/g, (match, varName) => {
-    // data-var="varName" を持つ要素を探す
-    const inputEl = document.querySelector(`[data-var="${varName}"]`);
+    const selector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
+    const inputEl = document.querySelector(selector);
 
     // 要素が見つかり、かつ value プロパティを持っていればその値を返す
     if (inputEl && "value" in inputEl) {
@@ -19,7 +20,7 @@ function resolveCommandPlaceholders(commandTemplate: string): string {
     }
 
     // 見つからない場合は警告を出して、置換せずそのままにする
-    console.warn(`Variable {{${varName}}} not found in elements with data-var="${varName}".`);
+    console.warn(`Variable {{${varName}}} not found in elements with ${CONFIG_ATTR.VAR}="${varName}".`);
     return match;
   });
 }
@@ -28,15 +29,17 @@ function renderApp(data: ConfigData) {
   const { head, body, version } = data;
 
   // HTMLの更新
-  const processedHead = head.replace(/\{\{package_version\}\}/g, version);
+  const versionRegex = new RegExp(`\\{\\{${CONFIG_VAR.PACKAGE_VERSION}\\}\\}`, "g");
+  const processedHead = head.replace(versionRegex, version);
+  const processedBody = body.replace(versionRegex, version);
   document.head.innerHTML = processedHead;
-  document.body.innerHTML = body;
+  document.body.innerHTML = processedBody;
 
   // 保存されていた値を復元する
-  const dataVarElements = document.body.querySelectorAll("[data-var]");
+  const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
   dataVarElements.forEach((element) => {
     const el = element as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-    const varName = el.getAttribute("data-var");
+    const varName = el.getAttribute(CONFIG_ATTR.VAR);
     if (varName) {
       const storageKey = `user_input_${varName}`;
       const savedValue = localStorage.getItem(storageKey);
@@ -58,12 +61,12 @@ function renderApp(data: ConfigData) {
   });
 
   // コマンドボタンのイベント設定
-  const commandElements = document.body.querySelectorAll("[data-command]");
+  const commandElements = document.body.querySelectorAll(`[${CONFIG_ATTR.COMMAND}]`);
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
-    const commandTemplate = el.getAttribute("data-command");
-    const targetId = el.getAttribute("data-command-log-id") || undefined;
-    const logFile = el.getAttribute("data-command-log-file") || undefined;
+    const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
+    const targetId = el.getAttribute(CONFIG_ATTR.LOG_ID) || undefined;
+    const logFile = el.getAttribute(CONFIG_ATTR.LOG_FILE) || undefined;
 
     if (commandTemplate) {
       el.style.cursor = "pointer";

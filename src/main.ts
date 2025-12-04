@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import { spawn } from "node:child_process";
 import iconv from "iconv-lite";
-import { FILE_PATH } from "./constants.js";
+import { FILE_PATH } from "./file_paths.js";
 import { IpcChannels } from "./types.js";
 import { ensureConfigExists, readConfig, extractConfigCustomSetting, convertToConfigData, setupConfigWatcher } from "./config_helper.js";
 import { CommandLogWriter } from "./command_log_writer.js";
