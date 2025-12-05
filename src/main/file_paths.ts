@@ -5,10 +5,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // distディレクトリパス
-export const DIST_PATH = __dirname;
+export const DIST_PATH = path.join(__dirname, "..");
 
 // プロジェクトルートパス
-export const ROOT_PATH = path.join(__dirname, "..");
+export const ROOT_PATH = path.join(__dirname, "..", "..");
 
 // 各種ファイルパス
 export const FILE_PATH = {

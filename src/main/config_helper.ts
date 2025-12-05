@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import fsCallback from "node:fs";
 import { XMLParser } from "fast-xml-parser";
 import { ROOT_PATH } from "./file_paths.js";
-import { XmlStructure, ConfigData } from "./types.js";
+import { XmlStructure, ConfigData } from "../types.js";
 
 // CDATA注入
 function injectCdata(xmlString: string, tag: string): string {

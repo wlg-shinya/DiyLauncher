@@ -1,5 +1,5 @@
-import { MyAPI, ConfigData, CommandOutput } from "./types.js";
-import { CONFIG_ATTR, CONFIG_VAR } from "./constants.js";
+import { MyAPI, ConfigData, CommandOutput } from "../types.js";
+import { CONFIG_ATTR, CONFIG_VAR } from "../constants.js";
 
 declare global {
   interface Window {
