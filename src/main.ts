@@ -65,6 +65,7 @@ app.whenReady().then(async () => {
   handleIpc("run-os-command", async (event, command, logId, logFile) => {
     console.log(`実行コマンド: ${command}`);
 
+    const startTime = Date.now();
     const child = spawn(command, { shell: true });
     const logger = new CommandLogWriter(logFile, command);
 
@@ -77,7 +78,17 @@ app.whenReady().then(async () => {
     child.stdout.on("data", (data: Buffer) => sendOutput(decode(data), "stdout"));
     child.stderr.on("data", (data: Buffer) => sendOutput(decode(data), "stderr"));
     child.on("close", (code) => {
-      sendOutput(`Process exited with code ${code}`, "exit");
+      // プロセスにかかった時間を算出
+      const endTime = Date.now();
+      const diff = endTime - startTime;
+      const pad = (n: number, len: number = 2) => n.toString().padStart(len, "0");
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const ms = diff % 1000;
+      const durationStr = `${pad(h)}:${pad(m)}:${pad(s)}.${pad(ms, 3)}`;
+
+      sendOutput(`Process exited with code ${code} (Time: ${durationStr})`, "exit");
       logger.close();
     });
   });

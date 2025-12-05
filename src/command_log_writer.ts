@@ -21,11 +21,16 @@ export class CommandLogWriter {
   // テキストの書き込み
   write(text: string, type: "stdout" | "stderr" | "exit") {
     if (!this.stream) return;
-
-    if (type !== "exit") {
-      this.stream.write(text);
-    } else {
-      this.stream.write(`\n[Exited]\n`);
+    switch (type) {
+      case "stderr":
+        this.stream.write(`[stderr]${text}`);
+        break;
+      case "exit":
+        this.stream.write(`[exit]${text}`);
+        break;
+      default:
+        this.stream.write(text);
+        break;
     }
   }
 
