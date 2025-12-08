@@ -7,38 +7,51 @@ declare global {
   }
 }
 
-// config.xmk内の{{}}の解決
+// config.xml内の{{}}の解決
 function resolveTemplate(template: string): string {
   if (!template) return "";
 
-  return template.replace(/\{\{(.*?)\}\}/g, (match, varName) => {
+  return template.replace(/\{\{(.*?)\}\}/g, (match, rawVarName) => {
+    const varName = rawVarName.trim();
+
     // [data-var="..."] を探す
     const selector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
-    const inputEl = document.querySelector(selector);
-
-    if (inputEl && "value" in inputEl) {
-      return (inputEl as HTMLInputElement).value;
+    try {
+      const inputEl = document.querySelector(selector);
+      if (inputEl && "value" in inputEl) {
+        return (inputEl as HTMLInputElement).value;
+      }
+    } catch {
+      // 見つからない場合は置換しない
     }
-    // 見つからない場合は置換しない
     return match;
   });
 }
 
 function renderApp(data: ConfigData) {
+  // データの安全性チェック
+  if (!data) {
+    console.error("ConfigData is null or undefined");
+    return;
+  }
+  if (!CONFIG_VAR || !CONFIG_VAR.PACKAGE_VERSION) {
+    console.error("定数 CONFIG_VAR が読み込めませんでした。constants.ts を確認してください。");
+    return;
+  }
+
   const { head, body, version } = data;
 
   // HTMLの更新
   const versionRegex = new RegExp(`\\{\\{${CONFIG_VAR.PACKAGE_VERSION}\\}\\}`, "g");
-  const processedHead = head.replace(versionRegex, version);
-  const processedBody = body.replace(versionRegex, version);
+  const processedHead = (head || "").replace(versionRegex, version);
+  const processedBody = (body || "").replace(versionRegex, version);
+
   document.head.innerHTML = processedHead;
   document.body.innerHTML = processedBody;
 
   // data-var (入力欄) のセットアップ
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
-  // 画面上の動的テキストを更新する
   const updateDynamicView = () => {
-    // "data-template-text" 属性を持つ要素（＝{{}}を含んでいた要素）を探す
     const dynamicElements = document.body.querySelectorAll("[data-template-text]");
     dynamicElements.forEach((el) => {
       const template = el.getAttribute("data-template-text") || "";
@@ -74,12 +87,12 @@ function renderApp(data: ConfigData) {
   const allElements = document.body.getElementsByTagName("*");
   for (let i = 0; i < allElements.length; i++) {
     const el = allElements[i];
-    // 子要素を持たず、かつテキストに {{}} を含む場合
+    // 子要素を持たず、かつテキストに {{ }} を含む場合
     if (el.children.length === 0 && el.textContent && el.textContent.includes("{{")) {
-      // 元のテンプレートを属性として保存しておく
       el.setAttribute("data-template-text", el.textContent);
     }
   }
+
   // 初回描画
   updateDynamicView();
 
@@ -88,7 +101,6 @@ function renderApp(data: ConfigData) {
   commandElements.forEach((element) => {
     const el = element as HTMLElement;
 
-    // テンプレート(生の文字列)として取得
     const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
     const targetIdTemplate = el.getAttribute(CONFIG_ATTR.LOG_ID);
     const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
@@ -100,11 +112,12 @@ function renderApp(data: ConfigData) {
         const finalCommand = resolveTemplate(commandTemplate);
         const finalTargetId = targetIdTemplate ? resolveTemplate(targetIdTemplate) : undefined;
         const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
+
         if (finalTargetId) {
           const targetEl = document.getElementById(finalTargetId);
           if (targetEl && "value" in targetEl) {
             const now = new Date().toLocaleString();
-            (targetEl as HTMLTextAreaElement).value = `\n[${now}] > ${finalCommand}\n`;
+            (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${finalCommand}\n`;
           }
         }
 
@@ -115,29 +128,53 @@ function renderApp(data: ConfigData) {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // 初期ロード
-  const initialData = await window.myAPI.loadConfig();
-  renderApp(initialData);
+  try {
+    // 初期ロード
+    const initialData = await window.myAPI.loadConfig();
+    renderApp(initialData);
 
-  // 設定ファイル更新時のホットリロード
-  window.myAPI.onConfigUpdate((newData) => {
-    renderApp(newData);
-  });
+    // 設定ファイル更新時のホットリロード
+    window.myAPI.onConfigUpdate((newData) => {
+      renderApp(newData);
+    });
 
-  // コマンド出力を受け取って表示
-  window.myAPI.onCommandOutput((data: CommandOutput) => {
-    const targetEl = document.getElementById(data.targetId);
-    if (!targetEl) return;
+    // コマンド出力を受け取って表示
+    const MAX_LOG_LENGTH = 50000; // 表示上限文字数
+    window.myAPI.onCommandOutput((data: CommandOutput) => {
+      const targetEl = document.getElementById(data.targetId);
+      if (!targetEl) return;
 
-    // <textarea> や <input> の場合
-    if ("value" in targetEl) {
-      const inputEl = targetEl as HTMLTextAreaElement;
-      inputEl.value += data.text;
-      inputEl.scrollTop = inputEl.scrollHeight; // 常に一番下へスクロール
-    }
-    // 上記以外
-    else {
-      targetEl.innerText += data.text;
-    }
-  });
+      // 1. 現在のテキストを取得 (要素の種類で分岐)
+      const isInput = "value" in targetEl;
+      const currentText = isInput ? (targetEl as HTMLInputElement).value : targetEl.textContent || "";
+
+      // 2. 新しいテキストを結合
+      let newText = currentText + data.text;
+
+      // 3. 上限を超えていたら先頭を切り捨てる (メモリ・描画負荷対策)
+      if (newText.length > MAX_LOG_LENGTH) {
+        newText = "..." + newText.slice(-MAX_LOG_LENGTH);
+      }
+
+      // 4. DOMに反映
+      if (isInput) {
+        // textarea / input の場合
+        const inputEl = targetEl as HTMLTextAreaElement;
+        inputEl.value = newText;
+        inputEl.scrollTop = inputEl.scrollHeight; // 最下部へスクロール
+      } else {
+        // 上記以外
+        targetEl.textContent = newText;
+
+        // textContentでも改行コード(\n)が反映されるようにCSSをセット
+        targetEl.style.whiteSpace = "pre-wrap";
+        targetEl.style.overflowY = "auto";
+
+        // divでもスクロール追従させる
+        targetEl.scrollTop = targetEl.scrollHeight;
+      }
+    });
+  } catch (err) {
+    console.error("初期化エラー:", err);
+  }
 });
