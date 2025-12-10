@@ -35,6 +35,8 @@ async function createWindow() {
     width,
     height,
     icon: FILE_PATH.icon,
+    useContentSize: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: FILE_PATH.preload,
       sandbox: false,
