@@ -28,6 +28,24 @@ function resolveTemplate(template: string): string {
   });
 }
 
+function executeScripts(container: HTMLElement) {
+  const scripts = container.querySelectorAll("script");
+  scripts.forEach((oldScript) => {
+    const newScript = document.createElement("script");
+
+    // 属性をコピー
+    Array.from(oldScript.attributes).forEach((attr) => {
+      newScript.setAttribute(attr.name, attr.value);
+    });
+
+    // 中身をコピー
+    newScript.textContent = oldScript.textContent;
+
+    // 古いスクリプトを新しい(実行可能な)スクリプトに置き換える
+    oldScript.parentNode?.replaceChild(newScript, oldScript);
+  });
+}
+
 function renderApp(data: ConfigData) {
   // データの安全性チェック
   if (!data) {
@@ -41,13 +59,18 @@ function renderApp(data: ConfigData) {
 
   const { head, body, version } = data;
 
-  // HTMLの更新
+  // HTMLの中身のうち{{CONFIG_VAR.PACKAGE_VERSION}}を置き換える
   const versionRegex = new RegExp(`\\{\\{${CONFIG_VAR.PACKAGE_VERSION}\\}\\}`, "g");
   const processedHead = (head || "").replace(versionRegex, version);
   const processedBody = (body || "").replace(versionRegex, version);
 
+  // HTMLの更新
   document.head.innerHTML = processedHead;
   document.body.innerHTML = processedBody;
+
+  // scriptタグの実行
+  executeScripts(document.head);
+  executeScripts(document.body);
 
   // data-var (入力欄) のセットアップ
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
