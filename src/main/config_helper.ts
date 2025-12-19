@@ -112,10 +112,13 @@ export function setupConfigWatcher(win: BrowserWindow) {
         const newWidth = extractConfigCustomSetting(headHtml, "width", 600);
         const newHeight = extractConfigCustomSetting(headHtml, "height", 500);
 
-        // 現在のサイズと違えば変更する (アニメーションOFFで即時反映)
-        const [currentW, currentH] = win.getSize();
-        if (currentW !== newWidth || currentH !== newHeight) {
-          win.setSize(newWidth, newHeight, false);
+        // フレームの差分を計算してリサイズする
+        const [winW, winH] = win.getSize();
+        const [contentW, contentH] = win.getContentSize();
+        const borderW = winW - contentW;
+        const borderH = winH - contentH;
+        if (Math.abs(contentW - newWidth) > 2 || Math.abs(contentH - newHeight) > 2) {
+          win.setSize(newWidth + borderW, newHeight + borderH, false);
         }
 
         // 画面に送信
