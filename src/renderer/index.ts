@@ -138,20 +138,20 @@ function renderApp(data: ConfigData) {
         // 値取得モード
         if (outputVarName) {
           try {
-              // コマンド実行して結果を取得
-              const result = await window.myAPI.getCommandOutput(finalCommand);
-              
-              // 対象のdata-var要素を探す
-              const targetInput = document.querySelector(`[${CONFIG_ATTR.VAR}="${outputVarName}"]`);
-              if (targetInput && "value" in targetInput) {
-                  const inputEl = targetInput as HTMLInputElement;
-                  // 値をセット
-                  inputEl.value = result;
-                  // 保存＆画面更新のためにinputイベントを発火
-                  inputEl.dispatchEvent(new Event("input"));
-              }
+            // コマンド実行して結果を取得
+            const result = await window.myAPI.getCommandOutput(finalCommand);
+
+            // 対象のdata-var要素を探す
+            const targetInput = document.querySelector(`[${CONFIG_ATTR.VAR}="${outputVarName}"]`);
+            if (targetInput && "value" in targetInput) {
+              const inputEl = targetInput as HTMLInputElement;
+              // 値をセット
+              inputEl.value = result;
+              // 保存＆画面更新のためにinputイベントを発火
+              inputEl.dispatchEvent(new Event("input"));
+            }
           } catch (err) {
-              console.error("Failed to get command output:", err);
+            console.error("Failed to get command output:", err);
           }
         } 
         else 
@@ -161,17 +161,27 @@ function renderApp(data: ConfigData) {
           const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
 
           if (finalTargetId) {
-          const targetEl = document.getElementById(finalTargetId);
-          if (targetEl && "value" in targetEl) {
+            const targetEl = document.getElementById(finalTargetId);
+            if (targetEl && "value" in targetEl) {
               const now = new Date().toLocaleString();
               (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${finalCommand}\n`;
-          }
+            }
           }
           await window.myAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile);
         }
       });
     }
   });
+
+  // 自動実行
+  const autoRunElements = document.body.querySelectorAll(`[${CONFIG_ATTR.AUTO_CLICK}]`);
+  if (autoRunElements.length > 0) {
+    setTimeout(() => {
+      autoRunElements.forEach((element) => {
+        (element as HTMLElement).click();
+      });
+    }, 100);
+  }
 }
 
 window.addEventListener("DOMContentLoaded", async () => {

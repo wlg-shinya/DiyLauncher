@@ -5,6 +5,7 @@ export const CONFIG_ATTR = {
   LOG_FILE: "data-command-log-file",
   OUTPUT_VAR: "data-command-output-var",
   VAR: "data-var",
+  AUTO_CLICK: "data-auto-click",
 } as const;
 
 // config.xmlで使用する変数の定義
