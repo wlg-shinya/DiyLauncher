@@ -127,24 +127,48 @@ function renderApp(data: ConfigData) {
     const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
     const targetIdTemplate = el.getAttribute(CONFIG_ATTR.LOG_ID);
     const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
+    const outputVarName = el.getAttribute(CONFIG_ATTR.OUTPUT_VAR);
 
     if (commandTemplate) {
       el.style.cursor = "pointer";
       el.addEventListener("click", async (e) => {
         e.preventDefault();
         const finalCommand = resolveTemplate(commandTemplate);
-        const finalTargetId = targetIdTemplate ? resolveTemplate(targetIdTemplate) : undefined;
-        const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
 
-        if (finalTargetId) {
+        // 値取得モード
+        if (outputVarName) {
+          try {
+              // コマンド実行して結果を取得
+              const result = await window.myAPI.getCommandOutput(finalCommand);
+              
+              // 対象のdata-var要素を探す
+              const targetInput = document.querySelector(`[${CONFIG_ATTR.VAR}="${outputVarName}"]`);
+              if (targetInput && "value" in targetInput) {
+                  const inputEl = targetInput as HTMLInputElement;
+                  // 値をセット
+                  inputEl.value = result;
+                  // 保存＆画面更新のためにinputイベントを発火
+                  inputEl.dispatchEvent(new Event("input"));
+              }
+          } catch (err) {
+              console.error("Failed to get command output:", err);
+          }
+        } 
+        else 
+        {
+          // ログ出力モード
+          const finalTargetId = targetIdTemplate ? resolveTemplate(targetIdTemplate) : undefined;
+          const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
+
+          if (finalTargetId) {
           const targetEl = document.getElementById(finalTargetId);
           if (targetEl && "value" in targetEl) {
-            const now = new Date().toLocaleString();
-            (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${finalCommand}\n`;
+              const now = new Date().toLocaleString();
+              (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${finalCommand}\n`;
           }
+          }
+          await window.myAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile);
         }
-
-        await window.myAPI.runCommand(finalCommand, finalTargetId, finalLogFile);
       });
     }
   });

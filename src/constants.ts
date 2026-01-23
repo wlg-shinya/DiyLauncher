@@ -3,6 +3,7 @@ export const CONFIG_ATTR = {
   COMMAND: "data-command",
   LOG_ID: "data-command-log-id",
   LOG_FILE: "data-command-log-file",
+  OUTPUT_VAR: "data-command-output-var",
   VAR: "data-var",
 } as const;
 

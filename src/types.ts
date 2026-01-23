@@ -23,7 +23,8 @@ export interface CommandOutput {
 // IPC通信チャンネル名と型定義のマップ
 export interface IpcChannels {
   "load-config": () => ConfigData;
-  "run-os-command": (command: string, logId?: string, logFile?: string) => void;
+  "run-command-with-log": (command: string, logId?: string, logFile?: string) => void;
+  "get-command-output": (command: string) => string;
   "on-command-output": (data: CommandOutput) => void;
   "on-config-updated": (data: ConfigData) => void;
 }
@@ -33,7 +34,8 @@ type ApiMethod<K extends keyof IpcChannels> = (...args: Parameters<IpcChannels[K
 type ApiListener<K extends keyof IpcChannels> = (callback: (...args: Parameters<IpcChannels[K]>) => void) => void;
 export interface MyAPI {
   loadConfig: ApiMethod<"load-config">;
-  runCommand: ApiMethod<"run-os-command">;
+  runCommandWithLog: ApiMethod<"run-command-with-log">;
+  getCommandOutput: ApiMethod<"get-command-output">;
   onCommandOutput: ApiListener<"on-command-output">;
   onConfigUpdate: ApiListener<"on-config-updated">;
 }

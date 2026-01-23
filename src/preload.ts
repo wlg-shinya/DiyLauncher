@@ -7,7 +7,8 @@ const invoke = <K extends keyof IpcChannels>(channel: K, ...args: Parameters<Ipc
 
 const myApi: MyAPI = {
   loadConfig: () => invoke("load-config"),
-  runCommand: (command, targetId, logFile) => invoke("run-os-command", command, targetId, logFile),
+  runCommandWithLog: (command, targetId, logFile) => invoke("run-command-with-log", command, targetId, logFile),
+  getCommandOutput: (command) => invoke("get-command-output", command),
   onCommandOutput: (callback) => {
     ipcRenderer.on("on-command-output", (_event, data: CommandOutput) => callback(data));
   },

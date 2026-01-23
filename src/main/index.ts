@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
-import { spawn } from "node:child_process";
+import { spawn, exec } from "node:child_process";
 import iconv from "iconv-lite";
 import { FILE_PATH } from "./file_paths.js";
 import { ensureConfigExists, readConfig, extractConfigCustomSetting, convertToConfigData, setupConfigWatcher } from "./config_helper.js";
@@ -64,8 +64,8 @@ app.whenReady().then(async () => {
     return convertToConfigData(xmlObj);
   });
 
-  handleIpc("run-os-command", async (event, command, logId, logFile) => {
-    console.log(`実行コマンド: ${command}`);
+  handleIpc("run-command-with-log", async (event, command, logId, logFile) => {
+    console.log(`run-command-with-log: ${command}`);
 
     const startTime = Date.now();
     const child = spawn(command, { shell: true });
@@ -92,6 +92,22 @@ app.whenReady().then(async () => {
 
       sendOutput(`Process exited with code ${code} (Time: ${durationStr})`, "exit");
       logger.close();
+    });
+  });
+
+  handleIpc("get-command-output", async (_event, command) => {
+    console.log(`get-command-output: ${command}`);
+    return new Promise((resolve) => {
+      exec(command, { encoding: "buffer" }, (error, stdout, stderr) => {
+        if (error) {
+          const decodedStderr = decode(stderr);
+          resolve(decodedStderr.trim());
+        }
+        else {
+          const decodedStdout = decode(stdout);
+          resolve(decodedStdout.trim());
+        }
+      });
     });
   });
 
