@@ -81,13 +81,12 @@
                 🧮 電卓
             </button>
         </div>
-
         
         <div class="input-section">
             <div style="margin-bottom: 10px;">
                 <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
                 <label>Target:</label>
-                <input type="text" data-var="target_host" value="127.0.0.1" placeholder="IP or Host" />
+                <input type="text" data-var="target_host" />
                 <label>Count:</label>
                 <input type="number" data-var="ping_count" value="3" style="width: 50px;" />
             </div>
@@ -101,6 +100,14 @@
                 ▶ ping {{target_host}} -n {{ping_count}}
             </button>
         </div>
+
+        <!-- data-command-output-varにdata-varで記述された文字列を指定するとdata-commandの結果を設定します -->
+        <!-- data-auto-click="true"を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
+        <button class="display: none;"
+            data-command="hostname"
+            data-command-output-var="target_host"
+            data-auto-click="true">
+        </button>
 
         <textarea id="console-log" readonly></textarea>
     </body>
