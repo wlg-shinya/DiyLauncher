@@ -47,19 +47,19 @@
                 resize: vertical;
             }
 
-            .input-section {
+            .section {
                 background: #333;
                 padding: 15px;
                 border-radius: 5px;
                 border: 1px solid #444;
                 margin-bottom: 20px;
             }
-            .input-section label {
+            .section label {
                 font-weight: bold;
                 margin-right: 5px;
                 font-size: 14px;
             }
-            .input-section input {
+            .section input {
                 background: #111;
                 border: 1px solid #555;
                 color: #fff;
@@ -82,7 +82,7 @@
             </button>
         </div>
         
-        <div class="input-section">
+        <div class="section">
             <div style="margin-bottom: 10px;">
                 <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
                 <label>Target:</label>
@@ -101,13 +101,17 @@
             </button>
         </div>
 
-        <!-- data-command-output-varにdata-varで記述された文字列を指定するとdata-commandの結果を設定します -->
+        <!-- data-command-output-varに記述された文字列は{{}}で囲むことでdata-commandの結果を参照できます -->
         <!-- data-auto-click="true"を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
-        <button class="display: none;"
-            data-command="hostname"
-            data-command-output-var="target_host"
-            data-auto-click="true">
-        </button>
+        <div class="section">
+            <label>uname:</label>
+            <span
+                data-command="uname"
+                data-command-output-var="uname"
+                data-auto-click="true">
+                {{uname}}
+            </span>
+        </div>
 
         <textarea id="console-log" readonly></textarea>
     </body>
