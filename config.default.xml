@@ -110,12 +110,12 @@
         <!-- data-command-output-varに記述された文字列は{{}}で囲むことでdata-commandの結果を参照できます -->
         <!-- data-auto-click="true"を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
         <div class="section">
-            <label>uname:</label>
+            <label>hostname:</label>
             <span
-                data-command="uname"
-                data-command-output-var="uname"
+                data-command="hostname"
+                data-command-output-var="hostname"
                 data-auto-click="true">
-                {{uname}}
+                {{hostname}}
             </span>
         </div>
 
