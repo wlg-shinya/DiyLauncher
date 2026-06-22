@@ -29,6 +29,10 @@
       {
         "from": "config.default.xml",
         "to": "config.default.xml"
+      },
+      {
+        "from": "icon.ico",
+        "to": "icon.ico"
       }
     ],
     "extraFiles": [

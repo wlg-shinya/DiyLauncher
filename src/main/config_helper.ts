@@ -1,10 +1,10 @@
 import { app, BrowserWindow } from "electron";
-import path from "node:path";
+import { ROOT_PATH } from "./file_paths.js";
+import { XMLParser } from "fast-xml-parser";
+import { XmlStructure, ConfigData } from "../types.js";
 import fs from "node:fs/promises";
 import fsCallback from "node:fs";
-import { XMLParser } from "fast-xml-parser";
-import { ROOT_PATH } from "./file_paths.js";
-import { XmlStructure, ConfigData } from "../types.js";
+import path from "node:path";
 
 // CDATA注入
 function injectCdata(xmlString: string, tag: string): string {
@@ -33,18 +33,32 @@ export function getConfigPath(): string {
 // 設定ファイルがなければ作成する
 export async function ensureConfigExists() {
   const resourcePath = app.isPackaged ? process.resourcesPath : ROOT_PATH;
+
+  // config.xml の生成
   const configPath = path.join(resourcePath, "config.xml");
   const defaultPath = path.join(resourcePath, "config.default.xml");
   try {
-    // config.xml が存在すれば何もしない
     await fs.access(configPath);
   } catch {
-    // 存在しない場合 (初回起動など)、default をコピーして作成
     try {
       await fs.copyFile(defaultPath, configPath);
       console.log("config.xml を初期生成しました");
     } catch (err) {
       console.error("config.default.xml のコピーに失敗しました:", err);
+    }
+  }
+
+  // icon.ico の配置
+  const targetIconPath = path.join(resourcePath, "icon.ico");
+  const defaultIconPath = path.join(resourcePath, "icon.ico");
+  try {
+    await fs.access(targetIconPath);
+  } catch {
+    try {
+      await fs.copyFile(defaultIconPath, targetIconPath);
+      console.log("icon.ico が見つからなかったため、デフォルトを配置しました");
+    } catch (err) {
+      console.error("icon.ico のコピーに失敗しました:", err);
     }
   }
 }
