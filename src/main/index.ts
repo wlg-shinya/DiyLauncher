@@ -1,14 +1,16 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
-import { spawn, exec } from "node:child_process";
+import { spawn, exec, ChildProcess } from "node:child_process";
 import iconv from "iconv-lite";
 import { FILE_PATH } from "./file_paths.js";
 import { ensureConfigExists, readConfig, extractConfigCustomSetting, convertToConfigData, setupConfigWatcher } from "./config_helper.js";
 import { CommandLogWriter } from "./command_log_writer.js";
 import { IpcChannels } from "../types.js";
 
+const activeProcesses = new Set<ChildProcess>();
+
 const handleIpc = <K extends keyof IpcChannels>(
   channel: K,
-  listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
+  listener: (event: IpcMainInvokeEvent, ...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>,
 ) => {
   ipcMain.handle(channel, listener);
 };
@@ -69,6 +71,9 @@ app.whenReady().then(async () => {
 
     const startTime = Date.now();
     const child = spawn(command, { shell: true });
+
+    activeProcesses.add(child);
+
     const logger = new CommandLogWriter(logFile, command);
 
     const sendOutput = (text: string, type: "stdout" | "stderr" | "exit") => {
@@ -80,6 +85,9 @@ app.whenReady().then(async () => {
     child.stdout.on("data", (data: Buffer) => sendOutput(decode(data), "stdout"));
     child.stderr.on("data", (data: Buffer) => sendOutput(decode(data), "stderr"));
     child.on("close", (code) => {
+      // プロセスが正常・異常問わず終了したらセットから削除
+      activeProcesses.delete(child);
+
       // プロセスにかかった時間を算出
       const endTime = Date.now();
       const diff = endTime - startTime;
@@ -102,8 +110,7 @@ app.whenReady().then(async () => {
         if (error) {
           const decodedStderr = decode(stderr);
           resolve(decodedStderr.trim());
-        }
-        else {
+        } else {
           const decodedStdout = decode(stdout);
           resolve(decodedStdout.trim());
         }
@@ -114,6 +121,24 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("before-quit", () => {
+  if (activeProcesses.size > 0) {
+    console.log(`[DIY Launcher] アプリが終了するため、実行中の ${activeProcesses.size} 個のプロセスを強制終了します...`);
+
+    activeProcesses.forEach((child) => {
+      if (child.pid) {
+        exec(`taskkill /F /T /PID ${child.pid}`, (err) => {
+          if (err) {
+            console.error(`[DIY Launcher] PID ${child.pid} の強制終了に失敗:`, err);
+          }
+        });
+      }
+    });
+
+    activeProcesses.clear();
+  }
 });
 
 app.on("window-all-closed", () => {
