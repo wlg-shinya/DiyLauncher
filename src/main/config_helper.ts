@@ -34,37 +34,24 @@ export function getConfigPath(): string {
 export async function ensureConfigExists() {
   const resourcePath = app.isPackaged ? process.resourcesPath : ROOT_PATH;
 
-  // config.xml の生成
-  const configFile = "config.xml";
-  const configPath = path.join(resourcePath, configFile);
-  const defaultConfigFile = "config.default.xml";
-  const defaultConfigPath = path.join(resourcePath, defaultConfigFile);
-  try {
-    await fs.access(configPath);
-  } catch {
-    try {
-      await fs.copyFile(defaultConfigPath, configPath);
-      console.log(`${configFile} を初期生成しました`);
-    } catch (err) {
-      console.error(`${defaultConfigFile} のコピーに失敗しました:`, err);
-    }
-  }
+  const ensureFile = async (targetFileName: string, defaultFileName: string) => {
+    const filePath = path.join(resourcePath, targetFileName);
+    const defaultFilePath = path.join(resourcePath, defaultFileName);
 
-  // icon.ico の配置
-  const iconFile = "icon.ico";
-  const iconPath = path.join(resourcePath, iconFile);
-  const defaultIconFile = "icon.default.ico";
-  const defaultIconPath = path.join(resourcePath, defaultIconFile);
-  try {
-    await fs.access(iconPath);
-  } catch {
     try {
-      await fs.copyFile(defaultIconPath, iconPath);
-      console.log(`${iconFile} を初期生成しました`);
-    } catch (err) {
-      console.error(`${defaultIconFile} のコピーに失敗しました:`, err);
+      await fs.access(filePath);
+    } catch {
+      try {
+        await fs.copyFile(defaultFilePath, filePath);
+        console.log(`${targetFileName} を初期生成しました`);
+      } catch (err) {
+        console.error(`${defaultFileName} のコピーに失敗しました:`, err);
+      }
     }
-  }
+  };
+
+  await ensureFile("config.xml", "config.default.xml");
+  await ensureFile("icon.ico", "icon.default.ico");
 }
 
 // 設定ファイルの読み込み
