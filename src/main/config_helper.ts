@@ -35,30 +35,34 @@ export async function ensureConfigExists() {
   const resourcePath = app.isPackaged ? process.resourcesPath : ROOT_PATH;
 
   // config.xml の生成
-  const configPath = path.join(resourcePath, "config.xml");
-  const defaultPath = path.join(resourcePath, "config.default.xml");
+  const configFile = "config.xml";
+  const configPath = path.join(resourcePath, configFile);
+  const defaultConfigFile = "config.default.xml";
+  const defaultConfigPath = path.join(resourcePath, defaultConfigFile);
   try {
     await fs.access(configPath);
   } catch {
     try {
-      await fs.copyFile(defaultPath, configPath);
-      console.log("config.xml を初期生成しました");
+      await fs.copyFile(defaultConfigPath, configPath);
+      console.log(`${configFile} を初期生成しました`);
     } catch (err) {
-      console.error("config.default.xml のコピーに失敗しました:", err);
+      console.error(`${defaultConfigFile} のコピーに失敗しました:`, err);
     }
   }
 
   // icon.ico の配置
-  const targetIconPath = path.join(resourcePath, "icon.ico");
-  const defaultIconPath = path.join(resourcePath, "icon.ico");
+  const iconFile = "icon.ico";
+  const iconPath = path.join(resourcePath, iconFile);
+  const defaultIconFile = "icon.default.ico";
+  const defaultIconPath = path.join(resourcePath, defaultIconFile);
   try {
-    await fs.access(targetIconPath);
+    await fs.access(iconPath);
   } catch {
     try {
-      await fs.copyFile(defaultIconPath, targetIconPath);
-      console.log("icon.ico が見つからなかったため、デフォルトを配置しました");
+      await fs.copyFile(defaultIconPath, iconPath);
+      console.log(`${iconFile} を初期生成しました`);
     } catch (err) {
-      console.error("icon.ico のコピーに失敗しました:", err);
+      console.error(`${defaultIconFile} のコピーに失敗しました:`, err);
     }
   }
 }

@@ -31,8 +31,8 @@
         "to": "config.default.xml"
       },
       {
-        "from": "icon.ico",
-        "to": "icon.ico"
+        "from": "icon.default.ico",
+        "to": "icon.default.ico"
       }
     ],
     "extraFiles": [
@@ -43,7 +43,7 @@
     ],
     "win": {
       "target": "zip",
-      "icon": "icon.ico"
+      "icon": "icon.default.ico"
     }
   },
   "devDependencies": {
