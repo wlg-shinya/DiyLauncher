@@ -20,29 +20,45 @@ function updateDynamicView() {
 function resolveTemplate(template: string): string {
   if (!template) return "";
 
-  return template.replace(/\{\{(.*?)\}\}/g, (match, rawVarName) => {
-    const varName = rawVarName.trim();
+  let result = template;
+  let depth = 0;
+  const maxDepth = 5;
+  const regex = /\{\{(.*?)\}\}/g;
 
-    // [data-var="..."] (入力欄) を探す
-    const inputSelector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
-    const inputEl = document.querySelector(inputSelector);
-    if (inputEl && "value" in inputEl) {
-      return (inputEl as HTMLInputElement).value;
+  while (result.includes("{{") && depth < maxDepth) {
+    const nextResult = result.replace(regex, (match, rawVarName) => {
+      const varName = rawVarName.trim();
+
+      // [data-var="..."] (入力欄) を探す
+      const inputSelector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
+      const inputEl = document.querySelector(inputSelector);
+      if (inputEl && "value" in inputEl) {
+        return (inputEl as HTMLInputElement).value;
+      }
+
+      // なければ [data-command-output-var="..."] (コマンド結果保持要素) を探す
+      const outputSelector = `[${CONFIG_ATTR.OUTPUT_VAR}="${varName}"]`;
+      const outputEl = document.querySelector(outputSelector);
+      if (outputEl) {
+        const val = outputEl.getAttribute("data-value");
+        if (val !== null) return val;
+      }
+
+      // 見つからない、または値がない場合は置換しない
+      return match;
+    });
+
+    // 置換前後で文字列が全く変化していなければ、
+    // 存在しない変数が指定されているため、これ以上ループを回さず即座に抜ける
+    if (nextResult === result) {
+      break;
     }
 
-    // なければ [data-command-output-var="..."] (コマンド結果保持要素) を探す
-    // ※ inputタグ以外でも値を保持できるように data-value 属性を利用する
-    const outputSelector = `[${CONFIG_ATTR.OUTPUT_VAR}="${varName}"]`;
-    const outputEl = document.querySelector(outputSelector);
-    if (outputEl) {
-      // data-value属性に値が入っていればそれを返す
-      const val = outputEl.getAttribute("data-value");
-      if (val !== null) return val;
-    }
+    result = nextResult;
+    depth++;
+  }
 
-    // 見つからない、または値がない場合は置換しない
-    return match;
-  });
+  return result;
 }
 
 function executeScripts(container: HTMLElement) {
@@ -75,7 +91,7 @@ function renderApp(data: ConfigData) {
 
   // data-var (入力欄) のイベント設定
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
-  
+
   dataVarElements.forEach((element) => {
     const el = element as HTMLInputElement;
     const varName = el.getAttribute(CONFIG_ATTR.VAR);
@@ -141,10 +157,10 @@ function renderApp(data: ConfigData) {
               // 入力欄がない場合、自分自身に値を保持させる
               const outputSelector = `[${CONFIG_ATTR.OUTPUT_VAR}="${outputVarName}"]`;
               const outputEls = document.querySelectorAll(outputSelector);
-              
-              outputEls.forEach(target => {
-                 // inputタグ以外は data-value 属性に値を格納する
-                 target.setAttribute("data-value", result);
+
+              outputEls.forEach((target) => {
+                // inputタグ以外は data-value 属性に値を格納する
+                target.setAttribute("data-value", result);
               });
 
               // 値を属性に入れただけでは画面が変わらないので、明示的に再描画を呼ぶ
