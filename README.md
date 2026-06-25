@@ -1,5 +1,7 @@
 # DIY Launcher
 
+https://github.com/user-attachments/assets/860ecad1-e1db-44b3-bdd3-fa1eb9cd7abb
+
 これは自由に UI をレイアウトしてコマンドを設定できる、あなただけのランチャーが作れるアプリケーションです。
 
 This application allows you to create your own personalized launcher by freely customizing the UI layout and configuring commands.
@@ -31,3 +33,9 @@ This application allows you to create your own personalized launcher by freely c
 本アプリの利用により発生した損害について、当方は責任を負わないものとします。
 
 The author assumes no responsibility for any damages resulting from the use of this application.
+
+
+
+
+
+
