@@ -29,6 +29,13 @@ function resolveTemplate(template: string): string {
     const nextResult = result.replace(regex, (match, rawVarName) => {
       const varName = rawVarName.trim();
 
+      // 呼び出された瞬間の最新時刻を生成してNOWの値を決定する
+      if (varName === CONFIG_VAR.NOW) {
+        const now = new Date();
+        const pad = (n: number) => n.toString().padStart(2, "0");
+        return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      }
+
       // [data-var="..."] (入力欄) を探す
       const inputSelector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
       const inputEl = document.querySelector(inputSelector);
