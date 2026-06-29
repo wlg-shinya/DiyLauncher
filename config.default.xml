@@ -11,9 +11,9 @@
         <height>600</height>
 
         <!-- ここの内容がそのままheadに適用されます -->
-        <!-- {{package_version}}はこのアプリ自体のバージョンが表示されます -->
+        <!-- {{PACKAGE_VERSION}}はこのアプリ自体のバージョンが表示されます -->
         <meta charset="UTF-8" />
-        <title>DIY Launcher {{package_version}}</title>
+        <title>DIY Launcher {{PACKAGE_VERSION}}</title>
         <style>
             body { 
                 background-color: #222; 
@@ -77,7 +77,7 @@
     </head>
     <body>
         <!-- ここの内容がそのままbodyに適用されます -->
-        
+
         <!-- data-commandで記述されたコマンドをOSで実行します -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="notepad.exe">
@@ -87,7 +87,7 @@
                 🧮 電卓
             </button>
         </div>
-        
+
         <div class="section">
             <div style="margin-bottom: 10px;">
                 <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
@@ -119,6 +119,14 @@
                 data-auto-click="true">
                 {{hostname}}
             </span>
+        </div>
+
+        <!-- {{NOW}}で現在時刻(年月日_時分秒)を文字列で得られます。 -->
+        <div class="section">
+            <button class="launcher-btn" data-command="echo {{NOW}}"
+                data-command-log-id="console-log">
+                現在時刻(NOW)を文字列で表示
+            </button>
         </div>
 
         <textarea id="console-log" readonly></textarea>
