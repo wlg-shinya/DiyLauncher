@@ -11,6 +11,6 @@ export const CONFIG_ATTR = {
 
 // config.xmlで使用する変数の定義
 export const CONFIG_VAR = {
-  PACKAGE_VERSION: "package_version",
+  PACKAGE_VERSION: "PACKAGE_VERSION",
   NOW: "NOW",
 } as const;
