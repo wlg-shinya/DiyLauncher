@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
     return convertToConfigData(xmlObj);
   });
 
-  handleIpc("run-command-with-log", async (event, command, logId, logFile) => {
+  handleIpc("run-command-with-log", async (event, command, logId, logFile, logMode) => {
     console.log(`run-command-with-log: ${command}`);
 
     const startTime = Date.now();
@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
 
     activeProcesses.add(child);
 
-    const logger = new CommandLogWriter(logFile, command);
+    const logger = new CommandLogWriter(logFile, command, logMode);
 
     const sendOutput = (text: string, type: "stdout" | "stderr" | "exit") => {
       if (logId) {

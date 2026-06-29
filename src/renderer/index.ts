@@ -132,6 +132,7 @@ function renderApp(data: ConfigData) {
     const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
     const targetIdTemplate = el.getAttribute(CONFIG_ATTR.LOG_ID);
     const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
+    const logModeTemplate = el.getAttribute(CONFIG_ATTR.LOG_MODE);
     const outputVarName = el.getAttribute(CONFIG_ATTR.OUTPUT_VAR);
 
     if (commandTemplate) {
@@ -173,15 +174,21 @@ function renderApp(data: ConfigData) {
           // ログ出力モード
           const finalTargetId = targetIdTemplate ? resolveTemplate(targetIdTemplate) : undefined;
           const finalLogFile = logFileTemplate ? resolveTemplate(logFileTemplate) : undefined;
+          const finalLogMode = logModeTemplate ? resolveTemplate(logModeTemplate) : undefined;
 
           if (finalTargetId) {
             const targetEl = document.getElementById(finalTargetId);
             if (targetEl && "value" in targetEl) {
               const now = new Date().toLocaleString();
-              (targetEl as HTMLTextAreaElement).value = `\n[${now}] ${finalCommand}\n`;
+              const logMsg = `\n[${now}] ${finalCommand}\n`;
+              if (finalLogMode === "overwrite") {
+                (targetEl as HTMLTextAreaElement).value = logMsg;
+              } else {
+                (targetEl as HTMLTextAreaElement).value += logMsg;
+              }
             }
           }
-          await window.myAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile);
+          await window.myAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode);
         }
       });
     }

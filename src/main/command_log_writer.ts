@@ -5,11 +5,12 @@ import { getConfigPath } from "./config_helper.js";
 export class CommandLogWriter {
   private stream: fsCallback.WriteStream | null = null;
 
-  constructor(logFile: string | undefined, command: string) {
+  constructor(logFile: string | undefined, command: string, logMode?: string) {
     if (logFile) {
       try {
         const filePath = this.resolveLogPath(logFile);
-        this.stream = fsCallback.createWriteStream(filePath, { flags: "a" });
+        const writeFlag = logMode === "overwrite" ? "w" : "a";
+        this.stream = fsCallback.createWriteStream(filePath, { flags: writeFlag });
         const now = new Date().toLocaleString();
         this.stream.write(`\n--- [${now}] Command: ${command} ---\n`);
       } catch (err) {
