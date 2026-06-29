@@ -9,7 +9,7 @@ export class CommandLogWriter {
     if (logFile) {
       try {
         const filePath = this.resolveLogPath(logFile);
-        const writeFlag = logMode === "overwrite" ? "w" : "a";
+        const writeFlag = logMode === "append" ? "a" : "w";
         this.stream = fsCallback.createWriteStream(filePath, { flags: writeFlag });
         const now = new Date().toLocaleString();
         this.stream.write(`\n--- [${now}] Command: ${command} ---\n`);

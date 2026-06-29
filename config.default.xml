@@ -99,7 +99,7 @@
 
             <!-- data-command-log-idで記述されたidを持つ<textarea>/<input>にコマンド出力ログを表示します -->
             <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
-            <!-- data-command-log-modeでログの出力を追記(append)するか上書き(overwrite)するかを指定できます -->
+            <!-- data-command-log-modeでログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトはoverwrite) -->
             <button class="launcher-btn" style="width: 100%;"
                 data-command="ping {{target_host}} -n {{ping_count}}"
                 data-command-log-id="console-log"

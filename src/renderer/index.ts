@@ -181,10 +181,10 @@ function renderApp(data: ConfigData) {
             if (targetEl && "value" in targetEl) {
               const now = new Date().toLocaleString();
               const logMsg = `\n[${now}] ${finalCommand}\n`;
-              if (finalLogMode === "overwrite") {
-                (targetEl as HTMLTextAreaElement).value = logMsg;
-              } else {
+              if (finalLogMode === "append") {
                 (targetEl as HTMLTextAreaElement).value += logMsg;
+              } else {
+                (targetEl as HTMLTextAreaElement).value = logMsg;
               }
             }
           }
