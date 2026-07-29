@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "clean": "rm -rf dist logs config.xml",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "sync-version": "node scripts/sync-version.js"
   },
   "keywords": [],
   "author": "wlg-shinya",
