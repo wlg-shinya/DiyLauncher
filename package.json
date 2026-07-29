@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run sync-version && tsc && vite build",
     "clean": "rm -rf dist logs config.xml",
     "tauri": "tauri",
     "sync-version": "node scripts/sync-version.js"
