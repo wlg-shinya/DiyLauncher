@@ -1,5 +1,3 @@
-use tauri::Manager;
-
 mod bridge;
 mod config;
 
@@ -7,7 +5,7 @@ mod config;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            if let Err(err) = config::ensure_config_exists() {
+            if let Err(err) = config::ensure_config_exists(app.handle()) {
                 eprintln!("[Error] 初期ファイル生成エラー: {}", err);
             }
 
