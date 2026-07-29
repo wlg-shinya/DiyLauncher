@@ -1,5 +1,5 @@
-use tauri::{AppHandle, Emitter};
-use std::process::Command;
+use tauri::AppHandle;
+use crate::config;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ConfigData {
@@ -9,31 +9,32 @@ pub struct ConfigData {
 }
 
 #[tauri::command]
-pub async fn load_config(app: tauri::AppHandle) -> Result<ConfigData, String> {
+pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
     let version = app.package_info().version.to_string();
+    let _xml_str = config::read_config_xml()?;
 
-    // TODO: Electron の readConfig / convertToConfigData の移植
+    // TODO: 次のステップで XML パース (head, body の抽出) を実装
     Ok(ConfigData {
         head: String::new(),
         body: String::new(),
-        version: version,
+        version,
     })
 }
 
 #[tauri::command]
 pub async fn run_command_with_log(
-    app: AppHandle,
-    command: String,
-    log_id: Option<String>,
-    log_file: Option<String>,
-    log_mode: Option<String>,
+    _app: AppHandle,
+    _command: String,
+    _log_id: Option<String>,
+    _log_file: Option<String>,
+    _log_mode: Option<String>,
 ) -> Result<(), String> {
-    // TODO: Electron の spawn / activeProcesses の管理 / イベント送信 (app.emit) の移植
+    // TODO: Electron の spawn / activeProcesses 管理の移植
     Ok(())
 }
 
 #[tauri::command]
-pub async fn get_command_output(command: String) -> Result<String, String> {
-    // TODO: Electron の exec (buffer) / iconv-lite (文字コード変換) の移植
+pub async fn get_command_output(_command: String) -> Result<String, String> {
+    // TODO: Electron の exec の移植
     Ok(String::new())
 }
