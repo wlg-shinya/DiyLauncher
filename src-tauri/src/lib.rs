@@ -9,12 +9,14 @@ pub struct ConfigData {
 }
 
 #[tauri::command]
-async fn load_config() -> Result<ConfigData, String> {
+async fn load_config(app: tauri::AppHandle) -> Result<ConfigData, String> {
+    let version = app.package_info().version.to_string();
+
     // TODO: Electron の readConfig / convertToConfigData の移植
     Ok(ConfigData {
         head: String::new(),
         body: String::new(),
-        version: "2.0.0".into(),
+        version: version,
     })
 }
 
