@@ -1,5 +1,8 @@
-import { MyAPI, ConfigData, CommandOutput } from "../types.js";
-import { CONFIG_ATTR, CONFIG_VAR } from "../constants.js";
+import { MyAPI, ConfigData, CommandOutput } from "../types";
+import { CONFIG_ATTR, CONFIG_VAR } from "../constants";
+import { setupTauriBridge } from '../tauri-bridge';
+
+setupTauriBridge();
 
 declare global {
   interface Window {
