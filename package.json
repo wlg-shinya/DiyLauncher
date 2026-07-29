@@ -4,7 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "clean": "rm -rf dist logs config.xml",
     "tauri": "tauri"
   },

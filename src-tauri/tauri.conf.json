@@ -5,7 +5,8 @@
   "identifier": "com.welovegamesinc.diylauncher",
   "build": {
     "frontendDist": "..",
-    "beforeDevCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
