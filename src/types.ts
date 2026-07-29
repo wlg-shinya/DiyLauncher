@@ -29,10 +29,10 @@ export interface IpcChannels {
   "on-config-updated": (data: ConfigData) => void;
 }
 
-// preloadで橋渡ししているAPI
+// 橋渡しAPI
 type ApiMethod<K extends keyof IpcChannels> = (...args: Parameters<IpcChannels[K]>) => Promise<ReturnType<IpcChannels[K]>>;
 type ApiListener<K extends keyof IpcChannels> = (callback: (...args: Parameters<IpcChannels[K]>) => void) => void;
-export interface MyAPI {
+export interface BridgeAPI {
   loadConfig: ApiMethod<"load-config">;
   runCommandWithLog: ApiMethod<"run-command-with-log">;
   getCommandOutput: ApiMethod<"get-command-output">;

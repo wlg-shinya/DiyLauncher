@@ -1,4 +1,4 @@
-import { MyAPI, ConfigData, CommandOutput } from "../types";
+import { BridgeAPI, ConfigData, CommandOutput } from "../types";
 import { CONFIG_ATTR, CONFIG_VAR } from "../constants";
 import { setupTauriBridge } from '../tauri-bridge';
 
@@ -6,7 +6,7 @@ setupTauriBridge();
 
 declare global {
   interface Window {
-    myAPI: MyAPI;
+    bridgeAPI: BridgeAPI;
   }
 }
 
@@ -155,7 +155,7 @@ function renderApp(data: ConfigData) {
         // 値取得モード
         if (outputVarName) {
           try {
-            const result = await window.myAPI.getCommandOutput(finalCommand);
+            const result = await window.bridgeAPI.getCommandOutput(finalCommand);
 
             // data-varがあれば優先してセット
             const inputSelector = `[${CONFIG_ATTR.VAR}="${outputVarName}"]`;
@@ -198,7 +198,7 @@ function renderApp(data: ConfigData) {
               }
             }
           }
-          await window.myAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode);
+          await window.bridgeAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode);
         }
       });
     }
@@ -217,14 +217,14 @@ function renderApp(data: ConfigData) {
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
-    const initialData = await window.myAPI.loadConfig();
+    const initialData = await window.bridgeAPI.loadConfig();
     renderApp(initialData);
 
-    window.myAPI.onConfigUpdate((newData) => {
+    window.bridgeAPI.onConfigUpdate((newData) => {
       renderApp(newData);
     });
 
-    window.myAPI.onCommandOutput((data: CommandOutput) => {
+    window.bridgeAPI.onCommandOutput((data: CommandOutput) => {
       const targetEl = document.getElementById(data.targetId);
       if (!targetEl) return;
 
