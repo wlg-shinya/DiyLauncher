@@ -8,6 +8,7 @@
     "identifier": "com.welovegamesinc.diylauncher"
   },
   "scripts": {
+    "start": "npm run tauri dev",
     "dev": "vite",
     "build": "npm run sync-settings && tsc && vite build",
     "clean": "rm -rf dist logs config.xml icon.ico",
