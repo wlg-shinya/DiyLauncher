@@ -23,14 +23,13 @@ pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
 
 #[tauri::command]
 pub async fn run_command_with_log(
-    _app: AppHandle,
-    _command: String,
-    _log_id: Option<String>,
-    _log_file: Option<String>,
-    _log_mode: Option<String>,
+    app: AppHandle,
+    command: String,
+    log_id: Option<String>,
+    log_file: Option<String>,
+    log_mode: Option<String>,
 ) -> Result<(), String> {
-    // TODO: Electron の spawn / activeProcesses 管理の移植
-    Ok(())
+    command::run_command_with_log(app, command, log_id, log_file, log_mode).await
 }
 
 #[tauri::command]
