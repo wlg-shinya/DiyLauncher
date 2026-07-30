@@ -22,16 +22,24 @@ jobs:
           node-version: 24
           cache: 'npm'
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and Package Electron App
-        run: npm run pack-release
+      - name: Build Tauri App
+        run: npm run package
+
+      - name: Prepare EXE for Release
+        shell: powershell
+        run: |
+          Copy-Item "src-tauri/target/release/DiyLauncher.exe" "DiyLauncher-${{ github.ref_name }}.exe"
 
       - name: Create GitHub Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: package/*.zip
+          files: DiyLauncher-*.exe
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
