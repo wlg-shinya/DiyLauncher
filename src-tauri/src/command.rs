@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter, State};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ProcessState(pub Arc<Mutex<Vec<u32>>>);
 
 #[derive(serde::Serialize, Clone)]
@@ -74,7 +74,7 @@ pub async fn run_command_with_log(
     log_file: Option<String>,
     log_mode: Option<String>,
 ) -> Result<(), String> {
-    let process_state_arc = process_state.0.clone();
+    let process_state_cloned = process_state.inner().clone();
 
     tauri::async_runtime::spawn_blocking(move || {
         let start_time = Instant::now();
@@ -107,9 +107,7 @@ pub async fn run_command_with_log(
         };
 
         let pid = child.id();
-        if let Ok(mut pids) = process_state_arc.lock() {
-            pids.push(pid);
-        }
+        process_state_cloned.add(pid);
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -164,10 +162,7 @@ pub async fn run_command_with_log(
         // プロセス終了待機 & 経過時間計算
         let status = child.wait();
 
-        // 正常・異常終了問わず完了したら PID の解除
-        if let Ok(mut pids) = process_state_arc.lock() {
-            pids.retain(|&id| id != pid);
-        }
+        process_state_cloned.remove(pid);
 
         let elapsed = start_time.elapsed();
         let hours = elapsed.as_secs() / 3600;
