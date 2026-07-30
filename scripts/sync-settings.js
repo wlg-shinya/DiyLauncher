@@ -34,10 +34,11 @@ if (fs.existsSync(tauriConfPath)) {
 const cargoPath = './src-tauri/Cargo.toml';
 if (fs.existsSync(cargoPath)) {
   let cargo = fs.readFileSync(cargoPath, 'utf8');
-  cargo = cargo.replace(/^version = ".*?"/m, `version = "${version}"`);
-  cargo = cargo.replace(/^description = ".*?"/m, `description = "${description}"`);
   cargo = cargo.replace(/^authors = \[.*?\]/m, `authors = ["${author}"]`);
+  cargo = cargo.replace(/^description = ".*?"/m, `description = "${description}"`);
   cargo = cargo.replace(/^license = ".*?"/m, `license = "${license}"`);
+  cargo = cargo.replace(/^name = ".*?"/m, `name = "${productName}"`);
+  cargo = cargo.replace(/^version = ".*?"/m, `version = "${version}"`);
   fs.writeFileSync(cargoPath, cargo);
 }
 
