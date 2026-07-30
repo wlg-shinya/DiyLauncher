@@ -11,12 +11,11 @@ pub struct ConfigData {
 #[tauri::command]
 pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
     let version = app.package_info().version.to_string();
-    let _xml_str = config::read_config_xml()?;
-
-    // TODO: 次のステップで XML パース (head, body の抽出) を実装
+    let xml_str = config::read_config_xml()?;
+    let parsed = config::parse_config_xml(&xml_str);
     Ok(ConfigData {
-        head: String::new(),
-        body: String::new(),
+        head: parsed.head,
+        body: parsed.body,
         version,
     })
 }
