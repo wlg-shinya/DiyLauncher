@@ -10,6 +10,7 @@ pub struct ParsedConfig {
     pub body: String,
     pub width: u64,
     pub height: u64,
+    pub title: Option<String>,
 }
 
 pub fn get_base_dir() -> PathBuf {
@@ -54,17 +55,32 @@ pub fn read_config_xml() -> Result<String, String> {
         .map_err(|e| format!("{} の読み込みに失敗しました: {}", CONFIG_FILE_NAME, e))
 }
 
-pub fn parse_config_xml(xml_str: &str) -> ParsedConfig {
-    let head = extract_tag_content(xml_str, "head");
-    let mut body = extract_tag_content(xml_str, "body");
+pub fn parse_config_xml(xml_str: &str, version: &str) -> ParsedConfig {
+    let raw_head = extract_tag_content(xml_str, "head");
+    let raw_body = extract_tag_content(xml_str, "body");
+
+    // {{PACKAGE_VERSION}} を実際のバージョン文字列に置換
+    let head = raw_head.replace("{{PACKAGE_VERSION}}", version);
+    let mut body = raw_body.replace("{{PACKAGE_VERSION}}", version);
+
     if body.is_empty() {
         body = "<div>No Body</div>".to_string();
     }
 
-    let width = extract_custom_setting(&head, "width", 800);
-    let height = extract_custom_setting(&head, "height", 600);
+    // ウィンドウの幅・高さの取得
+    let width = extract_custom_setting(&head, "width", 600);
+    let height = extract_custom_setting(&head, "height", 500);
 
-    ParsedConfig { head, body, width, height }
+    // ウィンドウタイトルの取得
+    let title_str = extract_tag_content(&head, "title");
+    let title = if title_str.is_empty() {
+        None
+    } else {
+        // タイトル内の {{PACKAGE_VERSION}} も置換
+        Some(title_str.replace("{{PACKAGE_VERSION}}", version))
+    };
+
+    ParsedConfig { head, body, width, height, title }
 }
 
 fn extract_tag_content(xml: &str, tag: &str) -> String {
@@ -111,9 +127,18 @@ pub fn apply_window_icon(app: &AppHandle) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-pub fn apply_window_size(app: &tauri::AppHandle, width: f64, height: f64) {
+pub fn apply_window_settings(app: &tauri::AppHandle, parsed: &ParsedConfig) {
     if let Some(window) = app.get_webview_window("main") {
-        let size = tauri::Size::Logical(tauri::LogicalSize { width, height });
+        // サイズの適用
+        let size = tauri::Size::Logical(tauri::LogicalSize { 
+            width: parsed.width as f64, 
+            height: parsed.height as f64 
+        });
         let _ = window.set_size(size);
+
+        // タイトルの適用
+        if let Some(ref t) = parsed.title {
+            let _ = window.set_title(t);
+        }
     }
 }

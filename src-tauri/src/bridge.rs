@@ -12,7 +12,7 @@ pub struct ConfigData {
 pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
     let version = app.package_info().version.to_string();
     let xml_str = config::read_config_xml()?;
-    let parsed = config::parse_config_xml(&xml_str);
+    let parsed = config::parse_config_xml(&xml_str, &version);
     Ok(ConfigData {
         head: parsed.head,
         body: parsed.body,

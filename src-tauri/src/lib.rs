@@ -16,12 +16,9 @@ pub fn run() {
             }
 
             if let Ok(xml_str) = config::read_config_xml() {
-                let parsed = config::parse_config_xml(&xml_str);
-                config::apply_window_size(
-                    handle, 
-                    parsed.width as f64, 
-                    parsed.height as f64
-                );
+                let version = handle.package_info().version.to_string();
+                let parsed = config::parse_config_xml(&xml_str, &version);
+                config::apply_window_settings(handle, &parsed);
             }
 
             Ok(())
