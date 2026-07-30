@@ -36,17 +36,9 @@ pub async fn get_command_output(command: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         println!("get_command_output: {}", command);
 
-        let output = if cfg!(target_os = "windows") {
-            let mut cmd = Command::new("cmd");
-            cmd.args(["/C", &command]);
-            #[cfg(target_os = "windows")]
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-            cmd.output()
-        } else {
-            let mut cmd = Command::new("sh");
-            cmd.args(["-c", &command]);
-            cmd.output()
-        };
+        // コマンドバッチ実行
+        let mut cmd = create_command(&command);
+        let output = cmd.output();
 
         match output {
             Ok(out) => {
@@ -83,20 +75,9 @@ pub async fn run_command_with_log(
         // ログファイルの準備
         let log_writer = prepare_log_file(&log_file, &log_mode);
 
-        let mut cmd = if cfg!(target_os = "windows") {
-            let mut c = Command::new("cmd");
-            c.args(["/C", &command]);
-            #[cfg(target_os = "windows")]
-            c.creation_flags(0x08000000); // CREATE_NO_WINDOW
-            c
-        } else {
-            let mut c = Command::new("sh");
-            c.args(["-c", &command]);
-            c
-        };
-
+        // コマンドストリーミング実行
+        let mut cmd = create_command(&command);
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
@@ -213,6 +194,23 @@ fn prepare_log_file(log_file: &Option<String>, log_mode: &Option<String>) -> Opt
         .append(is_append)
         .open(path)
         .ok()
+}
+
+fn create_command(src: &str) -> Command {
+    #[cfg(target_os = "windows")]
+    {
+        let mut c = Command::new("cmd");
+        c.raw_arg(format!("/S /C \"{}\"", src));
+        c.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        c
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut c = Command::new("sh");
+        c.args(["-c", src]);
+        c
+    }
 }
 
 impl ProcessState {
