@@ -1,7 +1,7 @@
 use tauri::AppHandle;
 use crate::config;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct ConfigData {
     pub head: String,
     pub body: String,

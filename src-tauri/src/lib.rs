@@ -21,6 +21,8 @@ pub fn run() {
                 config::apply_window_settings(handle, &parsed);
             }
 
+            config::setup_config_watcher(handle.clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
