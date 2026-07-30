@@ -3,12 +3,16 @@
   "version": "2.0.0",
   "description": "",
   "type": "module",
+  "appConfig": {
+    "productName": "DiyLauncher",
+    "identifier": "com.welovegamesinc.diylauncher"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "npm run sync-version && tsc && vite build",
-    "clean": "rm -rf dist logs config.xml",
+    "build": "npm run sync-settings && tsc && vite build",
+    "clean": "rm -rf dist logs config.xml icon.ico",
     "tauri": "tauri",
-    "sync-version": "node scripts/sync-version.js"
+    "sync-settings": "node scripts/sync-settings.js"
   },
   "keywords": [],
   "author": "wlg-shinya",
