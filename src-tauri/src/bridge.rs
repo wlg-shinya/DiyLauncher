@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::config;
+use crate::{command, config};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct ConfigData {
@@ -13,6 +13,7 @@ pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
     let version = app.package_info().version.to_string();
     let xml_str = config::read_config_xml()?;
     let parsed = config::parse_config_xml(&xml_str, &version);
+
     Ok(ConfigData {
         head: parsed.head,
         body: parsed.body,
@@ -33,7 +34,6 @@ pub async fn run_command_with_log(
 }
 
 #[tauri::command]
-pub async fn get_command_output(_command: String) -> Result<String, String> {
-    // TODO: Electron の exec の移植
-    Ok(String::new())
+pub async fn get_command_output(command: String) -> Result<String, String> {
+    command::get_command_output(command).await
 }
