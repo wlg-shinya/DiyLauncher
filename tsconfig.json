@@ -4,18 +4,16 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "src-ts",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/**/*"
+    "src-ts/**/*"
   ],
   "exclude": [
     "node_modules",
-    "src/main/**/*",
-    "src/preload.ts"
   ]
 }
