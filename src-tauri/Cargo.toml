@@ -25,3 +25,4 @@ tauri = { version = "2.11.3", features = ["image-ico"] }
 tauri-plugin-log = "2"
 quick-xml = "0.39.4"
 chrono = "0.4.45"
+notify = "8.2.0"
