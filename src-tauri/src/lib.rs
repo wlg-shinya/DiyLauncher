@@ -2,9 +2,13 @@ mod bridge;
 mod command;
 mod config;
 
+use command::ProcessState;
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(ProcessState::default())
         .setup(|app| {
             let handle = app.handle();
 
@@ -31,9 +35,10 @@ pub fn run() {
             bridge::run_command_with_log,
             bridge::get_command_output
         ])
-        .on_window_event(|_window, event| {
+        .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                // TODO: プロセス終了処理
+                let state = window.state::<ProcessState>();
+                state.kill_all();
             }
         })
         .run(tauri::generate_context!())

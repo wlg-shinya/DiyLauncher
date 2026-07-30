@@ -1,4 +1,4 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 use crate::{command, config};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -24,12 +24,13 @@ pub async fn load_config(app: AppHandle) -> Result<ConfigData, String> {
 #[tauri::command]
 pub async fn run_command_with_log(
     app: AppHandle,
+    process_state: State<'_, command::ProcessState>,
     command: String,
     log_id: Option<String>,
     log_file: Option<String>,
     log_mode: Option<String>,
 ) -> Result<(), String> {
-    command::run_command_with_log(app, command, log_id, log_file, log_mode).await
+    command::run_command_with_log(app, process_state, command, log_id, log_file, log_mode).await
 }
 
 #[tauri::command]

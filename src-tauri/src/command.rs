@@ -1,11 +1,18 @@
+use encoding_rs::SHIFT_JIS;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::process::Command as StdCommand;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tauri::{AppHandle, Emitter};
-use encoding_rs::SHIFT_JIS;
+use tauri::{AppHandle, Emitter, State};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[derive(Default)]
+pub struct ProcessState(pub Arc<Mutex<Vec<u32>>>);
 
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -28,9 +35,6 @@ pub fn decode_bytes(bytes: &[u8]) -> String {
 
 pub async fn get_command_output(command: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        #[cfg(target_os = "windows")]
-        use std::os::windows::process::CommandExt;
-
         println!("get_command_output: {}", command);
 
         let output = if cfg!(target_os = "windows") {
@@ -65,21 +69,20 @@ pub async fn get_command_output(command: String) -> Result<String, String> {
 
 pub async fn run_command_with_log(
     app: AppHandle,
+    process_state: State<'_, ProcessState>,
     command: String,
     log_id: Option<String>,
     log_file: Option<String>,
     log_mode: Option<String>,
 ) -> Result<(), String> {
+    let process_state_arc = process_state.0.clone();
+
     tauri::async_runtime::spawn_blocking(move || {
         let start_time = Instant::now();
         let target_id = log_id.unwrap_or_default();
 
         // ログファイルの準備
         let log_writer = prepare_log_file(&log_file, &log_mode);
-
-        // コマンドプロセスの起動設定
-        #[cfg(target_os = "windows")]
-        use std::os::windows::process::CommandExt;
 
         let mut cmd = if cfg!(target_os = "windows") {
             let mut c = Command::new("cmd");
@@ -103,6 +106,11 @@ pub async fn run_command_with_log(
                 return;
             }
         };
+
+        let pid = child.id();
+        if let Ok(mut pids) = process_state_arc.lock() {
+            pids.push(pid);
+        }
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -156,6 +164,12 @@ pub async fn run_command_with_log(
 
         // プロセス終了待機 & 経過時間計算
         let status = child.wait();
+
+        // 正常・異常終了問わず完了したら PID の解除
+        if let Ok(mut pids) = process_state_arc.lock() {
+            pids.retain(|&id| id != pid);
+        }
+
         let elapsed = start_time.elapsed();
         let hours = elapsed.as_secs() / 3600;
         let minutes = (elapsed.as_secs() % 3600) / 60;
@@ -205,4 +219,39 @@ fn prepare_log_file(log_file: &Option<String>, log_mode: &Option<String>) -> Opt
         .append(is_append)
         .open(path)
         .ok()
+}
+
+impl ProcessState {
+    pub fn add(&self, pid: u32) {
+        if let Ok(mut pids) = self.0.lock() {
+            pids.push(pid);
+        }
+    }
+
+    pub fn remove(&self, pid: u32) {
+        if let Ok(mut pids) = self.0.lock() {
+            pids.retain(|&id| id != pid);
+        }
+    }
+
+    pub fn kill_all(&self) {
+        if let Ok(mut pids) = self.0.lock() {
+            for pid in pids.drain(..) {
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = StdCommand::new("taskkill")
+                        .args(["/F", "/T", "/PID", &pid.to_string()])
+                        .creation_flags(0x08000000)
+                        .output();
+                }
+
+                #[cfg(not(target_os = "windows"))]
+                {
+                    let _ = StdCommand::new("kill")
+                        .args(["-9", &pid.to_string()])
+                        .output();
+                }
+            }
+        }
+    }
 }
