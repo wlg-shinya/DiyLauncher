@@ -8,7 +8,7 @@
 
         <!-- width, height は起動するアプリのウィンドウサイズです -->
         <width>800</width>
-        <height>600</height>
+        <height>700</height>
 
         <!-- ここの内容がそのままheadに適用されます -->
         <!-- {{PACKAGE_VERSION}}はこのアプリ自体のバージョンが表示されます -->
