@@ -5,8 +5,8 @@ import { BridgeAPI, ConfigData, CommandOutput } from "./types";
 export function setupTauriBridge(): void {
   const bridgeAPI: BridgeAPI = {
     loadConfig: () => invoke("load_config"),
-    runCommandWithLog: (command, targetId, logFile, logMode) =>
-      invoke("run_command_with_log", { command, targetId, logFile, logMode }),
+    runCommandWithLog: (command, logId, logFile, logMode) =>
+      invoke("run_command_with_log", { command, logId, logFile, logMode }),
     getCommandOutput: (command) => invoke("get_command_output", { command }),
     onCommandOutput: (callback) => {
       listen<CommandOutput>("on-command-output", (event) => callback(event.payload));
