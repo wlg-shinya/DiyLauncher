@@ -11,7 +11,8 @@
     "start": "npm run tauri dev",
     "dev": "vite",
     "build": "npm run sync-settings && tsc && vite build",
-    "clean": "rm -rf dist logs config.xml icon.ico",
+    "package": "npm run clean && tauri build",
+    "clean": "rm -rf dist src-tauri/target/release",
     "tauri": "tauri",
     "sync-settings": "node scripts/sync-settings.js"
   },
