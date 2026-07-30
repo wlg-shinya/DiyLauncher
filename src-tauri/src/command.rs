@@ -3,7 +3,6 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::process::Command as StdCommand;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State};
@@ -239,7 +238,7 @@ impl ProcessState {
             for pid in pids.drain(..) {
                 #[cfg(target_os = "windows")]
                 {
-                    let _ = StdCommand::new("taskkill")
+                    let _ = Command::new("taskkill")
                         .args(["/F", "/T", "/PID", &pid.to_string()])
                         .creation_flags(0x08000000)
                         .output();
@@ -247,7 +246,7 @@ impl ProcessState {
 
                 #[cfg(not(target_os = "windows"))]
                 {
-                    let _ = StdCommand::new("kill")
+                    let _ = Command::new("kill")
                         .args(["-9", &pid.to_string()])
                         .output();
                 }
