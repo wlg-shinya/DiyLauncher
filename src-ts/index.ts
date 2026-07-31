@@ -1,6 +1,6 @@
 import { BridgeAPI, ConfigData, CommandOutput } from "./types";
 import { CONFIG_ATTR, CONFIG_VAR } from "./constants";
-import { setupTauriBridge } from './tauri-bridge';
+import { setupTauriBridge } from "./tauri-bridge";
 
 setupTauriBridge();
 
@@ -25,7 +25,7 @@ function resolveTemplate(template: string): string {
 
   let result = template;
   let depth = 0;
-  const maxDepth = 5;
+  const maxDepth = 20;
   const regex = /\{\{(.*?)\}\}/g;
 
   while (result.includes("{{") && depth < maxDepth) {
