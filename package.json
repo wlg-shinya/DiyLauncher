@@ -1,63 +1,33 @@
 {
   "name": "diy-launcher",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "description": "",
   "type": "module",
-  "main": "dist/main/index.js",
+  "appConfig": {
+    "productName": "DiyLauncher",
+    "identifier": "com.welovegamesinc.diylauncher"
+  },
   "scripts": {
-    "build": "tsc",
-    "start": "chcp 65001 > nul && tsc && electron .",
-    "clean": "rm -rf dist logs config.xml",
-    "pack": "npm run build && electron-builder --dir",
-    "pack-clean": "rm -rf ./package",
-    "pack-release": "npm run pack-clean && npm run build && electron-builder"
+    "start": "npm run tauri dev",
+    "dev": "vite",
+    "build": "npm run sync-settings && tsc && vite build",
+    "package": "npm run clean && tauri build",
+    "clean": "rm -rf dist src-tauri/target/release",
+    "tauri": "tauri",
+    "sync-settings": "node scripts/sync-settings.js"
   },
   "keywords": [],
   "author": "wlg-shinya",
   "license": "MIT",
-  "build": {
-    "appId": "com.welovegamesinc.diy-launcher",
-    "productName": "DiyLauncher",
-    "directories": {
-      "output": "package"
-    },
-    "files": [
-      "dist/**/*",
-      "index.html"
-    ],
-    "extraResources": [
-      {
-        "from": "config.default.xml",
-        "to": "config.default.xml"
-      },
-      {
-        "from": "icon.default.ico",
-        "to": "icon.default.ico"
-      }
-    ],
-    "extraFiles": [
-      {
-        "from": "README.md",
-        "to": "./README.txt"
-      }
-    ],
-    "win": {
-      "target": "zip",
-      "icon": "icon.default.ico"
-    }
-  },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.10.1",
-    "electron": "^39.2.4",
-    "electron-builder": "^26.0.12",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
     "fast-xml-parser": "^5.3.2",
     "iconv-lite": "^0.7.0"
-  },
-  "allowScripts": {
-    "electron-winstaller@5.4.0": true,
-    "electron@39.8.10": true
   }
 }

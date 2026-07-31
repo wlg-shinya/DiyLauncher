@@ -8,8 +8,9 @@ package
 # 開発実行時のログ出力先
 logs
 
-# config.default.xmlをベースに自動生成されるファイル
+# defaultをベースに自動生成されるファイル
 config.xml
+icon.ico
 
 # ローカル限定エントリであることのマーク
 *.local*

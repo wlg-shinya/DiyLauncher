@@ -1,0 +1,134 @@
+<config>
+    <head>
+        <!-- 
+            同ディレクトリにある icon.ico を差し替えることで好きなアイコンに変更できます。
+            DiyLauncher.exe 自体のアイコンを差し替えたものにすることはできませんので、
+            exeのショートカットを用意してそちらのアイコンを変えることで代用してください。
+        -->
+
+        <!-- width, height は起動するアプリのウィンドウサイズです -->
+        <width>800</width>
+        <height>700</height>
+
+        <!-- ここの内容がそのままheadに適用されます -->
+        <!-- {{PACKAGE_VERSION}}はこのアプリ自体のバージョンが表示されます -->
+        <meta charset="UTF-8" />
+        <title>DIY Launcher {{PACKAGE_VERSION}}</title>
+        <style>
+            body { 
+                background-color: #222; 
+                color: #fff; 
+                font-family: "Meiryo", sans-serif; 
+                padding: 20px;
+            }
+            .grid-container { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 10px; 
+                margin-bottom: 20px;
+            }
+            .launcher-btn { 
+                padding: 15px; 
+                cursor: pointer; 
+                background: #444; 
+                color: white; 
+                border: 1px solid #666; 
+                border-radius: 5px;
+                font-size: 14px;
+                text-align: left;
+                transition: background 0.2s;
+            }
+            .launcher-btn:hover { background: #555; }
+
+            #console-log {
+                width: 100%;
+                height: 240px;
+                background-color: #1e1e1e;
+                color: #00ff00;
+                border: 1px solid #444;
+                padding: 10px;
+                font-family: monospace;
+                box-sizing: border-box;
+                border-radius: 4px;
+                resize: vertical;
+            }
+
+            .section {
+                background: #333;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #444;
+                margin-bottom: 20px;
+            }
+            .section label {
+                font-weight: bold;
+                margin-right: 5px;
+                font-size: 14px;
+            }
+            .section input {
+                background: #111;
+                border: 1px solid #555;
+                color: #fff;
+                padding: 5px 8px;
+                border-radius: 3px;
+                margin-right: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- ここの内容がそのままbodyに適用されます -->
+
+        <!-- data-commandで記述されたコマンドをOSで実行します -->
+        <div class="grid-container">
+            <button class="launcher-btn" data-command="notepad.exe">
+                📝 メモ帳
+            </button>
+            <button class="launcher-btn" data-command="calc.exe">
+                🧮 電卓
+            </button>
+        </div>
+
+        <div class="section">
+            <div style="margin-bottom: 10px;">
+                <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
+                <label>Target:</label>
+                <input type="text" data-var="target_host" />
+                <label>Count:</label>
+                <input type="number" data-var="ping_count" value="3" style="width: 50px;" />
+            </div>
+
+            <!-- data-command-log-idで記述されたidを持つ<textarea>/<input>にコマンド出力ログを表示します -->
+            <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
+            <!-- data-command-log-modeでログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトはoverwrite) -->
+            <button class="launcher-btn" style="width: 100%;"
+                data-command="ping {{target_host}} -n {{ping_count}}"
+                data-command-log-id="console-log"
+                data-command-log-file="logs/ping_{{target_host}}.log"
+                data-command-log-mode="overwrite">
+                ▶ ping {{target_host}} -n {{ping_count}}
+            </button>
+        </div>
+
+        <!-- data-command-output-varに記述された文字列は{{}}で囲むことでdata-commandの結果を参照できます -->
+        <!-- data-auto-click="true"を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
+        <div class="section">
+            <label>hostname:</label>
+            <span
+                data-command="hostname"
+                data-command-output-var="hostname"
+                data-auto-click="true">
+                {{hostname}}
+            </span>
+        </div>
+
+        <!-- {{NOW}}で現在時刻(年月日_時分秒)を文字列で得られます。 -->
+        <div class="section">
+            <button class="launcher-btn" data-command="echo {{NOW}}"
+                data-command-log-id="console-log">
+                現在時刻(NOW)を文字列で表示
+            </button>
+        </div>
+
+        <textarea id="console-log" readonly></textarea>
+    </body>
+</config>
