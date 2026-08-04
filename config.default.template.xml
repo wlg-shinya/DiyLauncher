@@ -18,7 +18,7 @@
             body { 
                 background-color: #222; 
                 color: #fff; 
-                font-family: "Meiryo", sans-serif; 
+                font-family: @FONT_FAMILY@; 
                 padding: 20px;
             }
             .grid-container { 
@@ -89,14 +89,14 @@
         <!-- data-command で記述されたコマンドをOSで実行します -->
         <!-- data-command-detach を true に設定するとアプリを終了しても data-command を終了しません。デフォルトは false で、アプリ終了とともに data-command を終了させます。ただし特定の exe は false でも終了しないことがあり、それは Windows の仕様です -->
         <div class="grid-container">
-            <button class="launcher-btn" data-command="notepad.exe">
-                📝 メモ帳
+            <button class="launcher-btn" data-command="@APP_TEXT_EDITOR_CMD@">
+                @APP_TEXT_EDITOR_LABEL@
             </button>
             <button class="launcher-btn" 
-                data-command="charmap.exe" 
+                data-command="@APP_UTIL_CMD@" 
                 data-command-detach="true"
             >
-                🧮 文字コード表
+                @APP_UTIL_LABEL@
             </button>
         </div>
 
@@ -115,7 +115,7 @@
             <!-- data-command-pidを指定すると、@KILL コマンドでプロセスを終了できます -->
             <button class="launcher-btn" style="width: 100%;"
                 title="ping {{target_host}} -n {{ping_count}}"
-                data-command="ping {{target_host}} -n {{ping_count}}"
+                data-command="ping {{target_host}} @PING_COUNT_OPT@ {{ping_count}}"
                 data-command-log-id="console-log"
                 data-command-log-file="logs/ping_{{target_host}}.log"
                 data-command-log-mode="overwrite"

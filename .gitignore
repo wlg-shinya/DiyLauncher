@@ -14,3 +14,6 @@ icon.ico
 
 # ローカル限定エントリであることのマーク
 *.local*
+
+# ビルド時に自動生成されるファイル
+src-tauri/resources/config.default.xml

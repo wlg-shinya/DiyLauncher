@@ -9,12 +9,13 @@
   },
   "scripts": {
     "start": "npm run tauri dev",
-    "dev": "vite",
-    "build": "npm run sync-settings && tsc && vite build",
+    "dev": "npm run generate-config-default-xml && vite",
+    "build": "npm run sync-settings && npm run generate-config-default-xml && tsc && vite build",
     "package": "npm run clean && tauri build",
     "clean": "rm -rf dist src-tauri/target/release",
     "tauri": "tauri",
-    "sync-settings": "node scripts/sync-settings.js"
+    "sync-settings": "node scripts/sync-settings.js",
+    "generate-config-default-xml": "node scripts/generate-config-default-xml.js"
   },
   "keywords": [],
   "author": "wlg-shinya",
