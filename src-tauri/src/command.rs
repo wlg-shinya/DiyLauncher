@@ -84,6 +84,9 @@ impl ProcessState {
 
         #[cfg(not(target_os = "windows"))]
         {
+            let _ = Command::new("pkill")
+                .args(["-9", "-P", &pid.to_string()])
+                .output();
             let _ = Command::new("kill")
                 .args(["-9", &pid.to_string()])
                 .output();
