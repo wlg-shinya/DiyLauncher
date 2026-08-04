@@ -3,15 +3,15 @@
         <!-- 
             同ディレクトリにある icon.ico を差し替えることで好きなアイコンに変更できます。
             DiyLauncher.exe 自体のアイコンを差し替えたものにすることはできませんので、
-            exeのショートカットを用意してそちらのアイコンを変えることで代用してください。
+            exe のショートカットを用意してそちらのアイコンを変えることで代用してください。
         -->
 
         <!-- width, height は起動するアプリのウィンドウサイズです -->
         <width>800</width>
-        <height>700</height>
+        <height>750</height>
 
-        <!-- ここの内容がそのままheadに適用されます -->
-        <!-- {{PACKAGE_VERSION}}はこのアプリ自体のバージョンが表示されます -->
+        <!-- ここの内容がそのまま head に適用されます -->
+        <!-- {{PACKAGE_VERSION}} はこのアプリ自体のバージョンが表示されます -->
         <meta charset="UTF-8" />
         <title>DIY Launcher {{PACKAGE_VERSION}}</title>
         <style>
@@ -38,7 +38,15 @@
                 text-align: left;
                 transition: background 0.2s;
             }
-            .launcher-btn:hover { background: #555; }
+            .launcher-btn:hover:not(:disabled) { 
+                background: #555; 
+            }
+            .launcher-btn:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+                background: #333 !important;
+                border-color: #444;
+            }
 
             #console-log {
                 width: 100%;
@@ -76,65 +84,79 @@
         </style>
     </head>
     <body>
-        <!-- ここの内容がそのままbodyに適用されます -->
+        <!-- ここの内容がそのまま body に適用されます -->
 
-        <!-- data-commandで記述されたコマンドをOSで実行します -->
-        <!-- data-command-detachをtrueに設定するとアプリを終了してもdata-commandを終了しません。デフォルトはfalseで、アプリ終了とともにdata-commandを終了させます。ただし特定のexeはfalseでも終了しないことがあり、それはWindowsの仕様です -->
+        <!-- data-command で記述されたコマンドをOSで実行します -->
+        <!-- data-command-detach を true に設定するとアプリを終了しても data-command を終了しません。デフォルトは false で、アプリ終了とともに data-command を終了させます。ただし特定の exe は false でも終了しないことがあり、それは Windows の仕様です -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="notepad.exe">
                 📝 メモ帳
             </button>
             <button class="launcher-btn" 
                 data-command="charmap.exe" 
-                data-command-detach="true">
+                data-command-detach="true"
+                >
                 🧮 文字コード表
             </button>
         </div>
 
         <div class="section">
             <div style="margin-bottom: 10px;">
-                <!-- data-varで記述された文字列は{{}}で囲むことでその要素の値を参照できます -->
+                <!-- data-var で記述された文字列は {{}} で囲むことでその要素の値を参照できます -->
                 <label>Target:</label>
                 <input type="text" data-var="target_host" />
                 <label>Count:</label>
                 <input type="number" data-var="ping_count" value="3" style="width: 50px;" />
             </div>
 
-            <!-- data-command-log-idで記述されたidを持つ<textarea>/<input>にコマンド出力ログを表示します -->
-            <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
-            <!-- data-command-log-modeでログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトはoverwrite) -->
+            <!-- data-command-log-id で記述されたidを持つ <textarea>/<input> にコマンド出力ログを表示します -->
+            <!-- data-command-log-file で記述されたファイルパスを作成してログを出力します -->
+            <!-- data-command-log-mode でログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトは overwrite ) -->
+            <!-- data-command-pidを指定すると、@KILL コマンドでプロセスを終了できます -->
             <button class="launcher-btn" style="width: 100%;"
                 title="ping {{target_host}} -n {{ping_count}}"
                 data-command="ping {{target_host}} -n {{ping_count}}"
                 data-command-log-id="console-log"
                 data-command-log-file="logs/ping_{{target_host}}.log"
-                data-command-log-mode="overwrite">
+                data-command-log-mode="overwrite"
+                data-command-pid="target-console-log"
+                >
                 ▶ ping {{target_host}} -n {{ping_count}}
             </button>
         </div>
 
-        <!-- data-command-output-varに記述された文字列は{{}}で囲むことでdata-commandの結果を参照できます -->
-        <!-- data-auto-click="true"を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
+        <!-- data-command-output-var に記述された文字列は {{}} で囲むことで data-command の結果を参照できます -->
+        <!-- data-auto-click="true" を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
         <div class="section">
             <label>hostname:</label>
             <span
                 data-command="hostname"
                 data-command-output-var="hostname"
-                data-auto-click="true">
+                data-auto-click="true"
+                >
                 {{hostname}}
             </span>
         </div>
 
-        <!-- {{NOW}}で現在時刻(年月日_時分秒)を文字列で得られます。 -->
+        <!-- {{NOW}} で現在時刻(年月日_時分秒)を文字列で得られます。 -->
+        <!-- 同じ data-command-pid の data-command 実行中はそれ以外の要素を disabled にします -->
         <div class="section">
             <button class="launcher-btn"
                 title="echo {{NOW}}"
                 data-command="echo {{NOW}}"
-                data-command-log-id="console-log">
+                data-command-log-id="console-log"
+                data-command-pid="target-console-log"
+                >
                 現在時刻(NOW)を文字列で表示
             </button>
         </div>
 
+        <!-- data-command に @KILL を指定すると、指定した data-command-pid の処理を終了できます -->
         <textarea id="console-log" readonly></textarea>
+        <button class="launcher-btn"
+            data-command="@KILL:target-console-log"
+            >
+            処理をキャンセル
+        </button>
     </body>
 </config>

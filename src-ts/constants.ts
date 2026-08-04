@@ -6,6 +6,7 @@ export const CONFIG_ATTR = {
   COMMAND_LOG_MODE: "data-command-log-mode",
   COMMAND_OUTPUT_VAR: "data-command-output-var",
   COMMAND_DETACH: "data-command-detach",
+  COMMAND_PID: "data-command-pid",
   VAR: "data-var",
   AUTO_CLICK: "data-auto-click",
 } as const;
@@ -14,4 +15,9 @@ export const CONFIG_ATTR = {
 export const CONFIG_VAR = {
   PACKAGE_VERSION: "PACKAGE_VERSION",
   NOW: "NOW",
+} as const;
+
+// data-command で使用できる独自コマンドの定義
+export const COMMAND = {
+  KILL: "@KILL:",
 } as const;

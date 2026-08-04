@@ -18,13 +18,22 @@ export interface CommandOutput {
   targetId: string;
   text: string;
   type: "stdout" | "stderr" | "exit";
+  cmdPid?: string | null;
 }
 
 // IPC通信チャンネル名と型定義のマップ
 export interface IpcChannels {
   "load-config": () => ConfigData;
-  "run-command-with-log": (command: string, logId?: string, logFile?: string, logMode?: string, detach?: boolean) => void;
+  "run-command-with-log": (
+    command: string,
+    logId?: string,
+    logFile?: string,
+    logMode?: string,
+    detach?: boolean,
+    cmdPid?: string
+  ) => void;
   "get-command-output": (command: string) => string;
+  "kill-process": (cmdPid: string) => void;
   "on-command-output": (data: CommandOutput) => void;
   "on-config-updated": (data: ConfigData) => void;
 }
@@ -36,6 +45,7 @@ export interface BridgeAPI {
   loadConfig: ApiMethod<"load-config">;
   runCommandWithLog: ApiMethod<"run-command-with-log">;
   getCommandOutput: ApiMethod<"get-command-output">;
+  killProcess: ApiMethod<"kill-process">;
   onCommandOutput: ApiListener<"on-command-output">;
   onConfigUpdate: ApiListener<"on-config-updated">;
 }

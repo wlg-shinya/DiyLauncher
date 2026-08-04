@@ -1,5 +1,5 @@
 import { BridgeAPI, ConfigData, CommandOutput } from "./types";
-import { CONFIG_ATTR, CONFIG_VAR } from "./constants";
+import { CONFIG_ATTR, CONFIG_VAR, COMMAND } from "./constants";
 import { setupTauriBridge } from "./tauri-bridge";
 
 setupTauriBridge();
@@ -96,6 +96,50 @@ function executeScripts(container: HTMLElement) {
   });
 }
 
+function setButtonsDisabledByPid(cmdPid: string, isRunning: boolean) {
+  if (!cmdPid) return;
+
+  // data-command-pid を指定している要素の制御
+  const pidElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND_PID}="${cmdPid}"]`);
+  pidElements.forEach((el) => {
+    const cmd = el.getAttribute(CONFIG_ATTR.COMMAND) || "";
+    if ("disabled" in el) {
+      if (cmd.startsWith(COMMAND.KILL)) {
+        // KILLボタンは実行中に活性化(disabled=false)
+        (el as HTMLButtonElement).disabled = !isRunning;
+      } else {
+        // 実行ボタンは実行中に非活性化(disabled=true)
+        (el as HTMLButtonElement).disabled = isRunning;
+      }
+    }
+  });
+
+  // data-command="${COMMAND.KILL}${cmdPid}" を持つボタンの制御
+  const killButtons = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND}="${COMMAND.KILL}${cmdPid}"]`);
+  killButtons.forEach((el) => {
+    if ("disabled" in el) {
+      (el as HTMLButtonElement).disabled = !isRunning;
+    }
+  });
+}
+
+function injectSystemStyles() {
+  const STYLE_ID = "diy-launcher-default-styles";
+  if (document.getElementById(STYLE_ID)) return;
+
+  const styleEl = document.createElement("style");
+  styleEl.id = STYLE_ID;
+  styleEl.textContent = `
+    [${CONFIG_ATTR.COMMAND}] {
+      cursor: pointer;
+    }
+    [${CONFIG_ATTR.COMMAND}]:disabled {
+      cursor: not-allowed !important;
+    }
+  `;
+  document.head.prepend(styleEl);
+}
+
 function renderApp(data: ConfigData) {
   if (!data) return;
   if (!CONFIG_VAR || !CONFIG_VAR.PACKAGE_VERSION) return;
@@ -108,6 +152,8 @@ function renderApp(data: ConfigData) {
 
   document.head.innerHTML = processedHead;
   document.body.innerHTML = processedBody;
+
+  injectSystemStyles();
 
   executeScripts(document.head);
   executeScripts(document.body);
@@ -169,13 +215,31 @@ function renderApp(data: ConfigData) {
     const logModeTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_LOG_MODE);
     const outputVarName = el.getAttribute(CONFIG_ATTR.COMMAND_OUTPUT_VAR);
     const isDetach = el.getAttribute(CONFIG_ATTR.COMMAND_DETACH) === "true";
+    const cmdPidTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_PID);
+
+    if (commandTemplate && commandTemplate.startsWith(COMMAND.KILL) && "disabled" in el) {
+      (el as HTMLButtonElement).disabled = true;
+    }
 
     if (commandTemplate) {
-      el.style.cursor = "pointer";
       el.addEventListener("click", async (e) => {
         e.preventDefault();
         // 実行直前の値を解決してコマンド作成
         const finalCommand = resolveTemplate(commandTemplate);
+        const finalCmdPid = cmdPidTemplate ? resolveTemplate(cmdPidTemplate) : undefined;
+
+        // COMMAND.KILL によるプロセスキル
+        if (finalCommand.startsWith(COMMAND.KILL)) {
+          const targetPid = finalCommand.replace(COMMAND.KILL, "").trim();
+          if (targetPid) {
+            try {
+              await window.bridgeAPI.killProcess(targetPid);
+            } catch (err) {
+              console.error("Failed to kill process:", err);
+            }
+          }
+          return;
+        }
 
         // 値取得モード
         if (outputVarName) {
@@ -223,7 +287,27 @@ function renderApp(data: ConfigData) {
               }
             }
           }
-          await window.bridgeAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode, isDetach);
+
+          // ボタン群の非活性化
+          if (finalCmdPid) {
+            setButtonsDisabledByPid(finalCmdPid, true);
+          }
+
+          try {
+            await window.bridgeAPI.runCommandWithLog(
+              finalCommand,
+              finalTargetId,
+              finalLogFile,
+              finalLogMode,
+              isDetach,
+              finalCmdPid
+            );
+          } catch (err) {
+            console.error("Failed to run command:", err);
+            if (finalCmdPid) {
+              setButtonsDisabledByPid(finalCmdPid, false);
+            }
+          }
         }
       });
     }
@@ -250,6 +334,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
 
     window.bridgeAPI.onCommandOutput((data: CommandOutput) => {
+      if (data.type === "exit" && data.cmdPid) {
+        setButtonsDisabledByPid(data.cmdPid, false);
+      }
+
+      if (!data.targetId) return;
       const targetEl = document.getElementById(data.targetId);
       if (!targetEl) return;
 
