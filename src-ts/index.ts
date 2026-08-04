@@ -17,6 +17,19 @@ function updateDynamicView() {
     // 最新の値で解決してテキストを更新
     el.textContent = resolveTemplate(template);
   });
+
+  const allElements = document.body.getElementsByTagName("*");
+  for (let i = 0; i < allElements.length; i++) {
+    const el = allElements[i];
+    Array.from(el.attributes).forEach((attr) => {
+      if (attr.name.startsWith("data-template-attr-")) {
+        const targetAttrName = attr.name.replace("data-template-attr-", "");
+        const template = attr.value || "";
+        // 最新の値で解決して属性(titleなど)の値を更新
+        el.setAttribute(targetAttrName, resolveTemplate(template));
+      }
+    });
+  }
 }
 
 // config.xml内の{{}}の解決
@@ -122,10 +135,21 @@ function renderApp(data: ConfigData) {
     }
   });
 
-  // テキストノードの初期スキャン ({{}} を探す)
+  // {{}} を探す
   const allElements = document.body.getElementsByTagName("*");
   for (let i = 0; i < allElements.length; i++) {
     const el = allElements[i];
+
+    // 属性のスキャン
+    Array.from(el.attributes).forEach((attr) => {
+      if (attr.name.startsWith("data-template-")) return; 
+
+      if (attr.value && attr.value.includes("{{")) {
+        el.setAttribute(`data-template-attr-${attr.name}`, attr.value);
+      }
+    });
+
+    // テキストのスキャン
     if (el.children.length === 0 && el.textContent && el.textContent.includes("{{")) {
       el.setAttribute("data-template-text", el.textContent);
     }

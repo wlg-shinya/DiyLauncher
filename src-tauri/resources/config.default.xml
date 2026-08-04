@@ -101,6 +101,7 @@
             <!-- data-command-log-fileで記述されたファイルパスを作成してログを出力します -->
             <!-- data-command-log-modeでログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトはoverwrite) -->
             <button class="launcher-btn" style="width: 100%;"
+                title="ping {{target_host}} -n {{ping_count}}"
                 data-command="ping {{target_host}} -n {{ping_count}}"
                 data-command-log-id="console-log"
                 data-command-log-file="logs/ping_{{target_host}}.log"
@@ -123,7 +124,9 @@
 
         <!-- {{NOW}}で現在時刻(年月日_時分秒)を文字列で得られます。 -->
         <div class="section">
-            <button class="launcher-btn" data-command="echo {{NOW}}"
+            <button class="launcher-btn"
+                title="echo {{NOW}}"
+                data-command="echo {{NOW}}"
                 data-command-log-id="console-log">
                 現在時刻(NOW)を文字列で表示
             </button>
