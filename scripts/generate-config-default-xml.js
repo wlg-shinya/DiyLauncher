@@ -2,10 +2,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const SCRIPT_NAME = path.parse(fileURLToPath(import.meta.url)).name;
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const SCRIPT_NAME = path.basename(__filename);
 
 const OS_PARAMS = {
   win32: {
@@ -37,7 +37,6 @@ function generateConfigDefaultXml() {
 
   let content = fs.readFileSync(templatePath, "utf-8");
 
-  // @TAG@ の置き換え
   Object.entries(params).forEach(([key, value]) => {
     const regex = new RegExp(`@${key}@`, "g");
     content = content.replace(regex, value);
