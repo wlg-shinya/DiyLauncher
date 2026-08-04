@@ -65,6 +65,7 @@ pub async fn run_command_with_log(
     log_id: Option<String>,
     log_file: Option<String>,
     log_mode: Option<String>,
+    detach: bool,
 ) -> Result<(), String> {
     let process_state_cloned = process_state.inner().clone();
 
@@ -88,7 +89,9 @@ pub async fn run_command_with_log(
         };
 
         let pid = child.id();
-        process_state_cloned.add(pid);
+        if !detach {
+            process_state_cloned.add(pid);
+        }
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -143,7 +146,9 @@ pub async fn run_command_with_log(
         // プロセス終了待機 & 経過時間計算
         let status = child.wait();
 
-        process_state_cloned.remove(pid);
+        if !detach {
+            process_state_cloned.remove(pid);
+        }
 
         let elapsed = start_time.elapsed();
         let hours = elapsed.as_secs() / 3600;
@@ -232,7 +237,7 @@ impl ProcessState {
                 #[cfg(target_os = "windows")]
                 {
                     let _ = Command::new("taskkill")
-                        .args(["/F", "/PID", &pid.to_string()])
+                        .args(["/F", "/T", "/PID", &pid.to_string()])
                         .creation_flags(0x08000000)
                         .output();
                 }

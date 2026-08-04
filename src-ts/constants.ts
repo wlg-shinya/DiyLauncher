@@ -5,6 +5,7 @@ export const CONFIG_ATTR = {
   LOG_FILE: "data-command-log-file",
   LOG_MODE: "data-command-log-mode",
   OUTPUT_VAR: "data-command-output-var",
+  DETACH: "data-command-detach",
   VAR: "data-var",
   AUTO_CLICK: "data-auto-click",
 } as const;

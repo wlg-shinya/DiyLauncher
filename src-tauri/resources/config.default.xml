@@ -79,12 +79,15 @@
         <!-- ここの内容がそのままbodyに適用されます -->
 
         <!-- data-commandで記述されたコマンドをOSで実行します -->
+        <!-- data-command-detachをtrueに設定するとアプリを終了してもdata-commandを終了しません。デフォルトはfalseで、アプリ終了とともにdata-commandを終了させます。ただし特定のexeはfalseでも終了しないことがあり、それはWindowsの仕様です -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="notepad.exe">
                 📝 メモ帳
             </button>
-            <button class="launcher-btn" data-command="calc.exe">
-                🧮 電卓
+            <button class="launcher-btn" 
+                data-command="charmap.exe" 
+                data-command-detach="true">
+                🧮 文字コード表
             </button>
         </div>
 

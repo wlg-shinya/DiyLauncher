@@ -168,6 +168,7 @@ function renderApp(data: ConfigData) {
     const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
     const logModeTemplate = el.getAttribute(CONFIG_ATTR.LOG_MODE);
     const outputVarName = el.getAttribute(CONFIG_ATTR.OUTPUT_VAR);
+    const isDetach = el.getAttribute(CONFIG_ATTR.DETACH) === "true";
 
     if (commandTemplate) {
       el.style.cursor = "pointer";
@@ -222,7 +223,7 @@ function renderApp(data: ConfigData) {
               }
             }
           }
-          await window.bridgeAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode);
+          await window.bridgeAPI.runCommandWithLog(finalCommand, finalTargetId, finalLogFile, finalLogMode, isDetach);
         }
       });
     }

@@ -29,8 +29,9 @@ pub async fn run_command_with_log(
     log_id: Option<String>,
     log_file: Option<String>,
     log_mode: Option<String>,
+    detach: Option<bool>,
 ) -> Result<(), String> {
-    command::run_command_with_log(app, process_state, command, log_id, log_file, log_mode).await
+    command::run_command_with_log(app, process_state, command, log_id, log_file, log_mode, detach.unwrap_or(false)).await
 }
 
 #[tauri::command]
