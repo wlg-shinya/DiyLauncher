@@ -87,7 +87,7 @@
         <!-- ここの内容がそのまま body に適用されます -->
 
         <!-- data-command で記述されたコマンドをOSで実行します -->
-        <!-- data-command-detach を true に設定するとアプリを終了しても data-command を終了しません。デフォルトは false で、アプリ終了とともに data-command を終了させます。ただし特定の exe は false でも終了しないことがあり、それは Windows の仕様です -->
+        <!-- data-command-detach を true に設定するとアプリを終了しても data-command を終了しません。デフォルトは false で、アプリ終了とともに data-command を終了させます。ただし特定の exe は false でも終了しないことがあり、それはOSの仕様です -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="@APP_TEXT_EDITOR_CMD@">
                 @APP_TEXT_EDITOR_LABEL@
@@ -109,10 +109,10 @@
                 <input type="number" data-var="ping_count" value="3" style="width: 50px;" />
             </div>
 
-            <!-- data-command-log-id で記述されたidを持つ <textarea>/<input> にコマンド出力ログを表示します -->
+            <!-- data-command-log-id で記述された id を持つ <textarea>/<input> にコマンド出力ログを表示します -->
             <!-- data-command-log-file で記述されたファイルパスを作成してログを出力します -->
             <!-- data-command-log-mode でログの出力を上書き(overwrite)するか追記(append)するかを指定できます。(デフォルトは overwrite ) -->
-            <!-- data-command-pidを指定すると、@KILL コマンドでプロセスを終了できます -->
+            <!-- data-command-pid を設定すると、@KILL コマンドで指定してプロセスを終了できます -->
             <button class="launcher-btn" style="width: 100%;"
                 title="ping {{target_host}} -n {{ping_count}}"
                 data-command="ping {{target_host}} @PING_COUNT_OPT@ {{ping_count}}"
@@ -126,7 +126,7 @@
         </div>
 
         <!-- data-command-output-var に記述された文字列は {{}} で囲むことで data-command の結果を参照できます -->
-        <!-- data-auto-click="true" を設定すると起動時およびホットリロード時にクリックイベントが発生します -->
+        <!-- data-auto-click を true に設定すると起動時およびホットリロード時にクリックイベントが発生します -->
         <div class="section">
             <label>hostname:</label>
             <span
