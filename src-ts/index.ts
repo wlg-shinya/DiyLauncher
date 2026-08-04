@@ -60,7 +60,7 @@ function resolveTemplate(template: string): string {
       }
 
       // なければ [data-command-output-var="..."] (コマンド結果保持要素) を探す
-      const outputSelector = `[${CONFIG_ATTR.OUTPUT_VAR}="${varName}"]`;
+      const outputSelector = `[${CONFIG_ATTR.COMMAND_OUTPUT_VAR}="${varName}"]`;
       const outputEl = document.querySelector(outputSelector);
       if (outputEl) {
         const val = outputEl.getAttribute("data-value");
@@ -164,11 +164,11 @@ function renderApp(data: ConfigData) {
     const el = element as HTMLElement;
 
     const commandTemplate = el.getAttribute(CONFIG_ATTR.COMMAND);
-    const targetIdTemplate = el.getAttribute(CONFIG_ATTR.LOG_ID);
-    const logFileTemplate = el.getAttribute(CONFIG_ATTR.LOG_FILE);
-    const logModeTemplate = el.getAttribute(CONFIG_ATTR.LOG_MODE);
-    const outputVarName = el.getAttribute(CONFIG_ATTR.OUTPUT_VAR);
-    const isDetach = el.getAttribute(CONFIG_ATTR.DETACH) === "true";
+    const targetIdTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_LOG_ID);
+    const logFileTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_LOG_FILE);
+    const logModeTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_LOG_MODE);
+    const outputVarName = el.getAttribute(CONFIG_ATTR.COMMAND_OUTPUT_VAR);
+    const isDetach = el.getAttribute(CONFIG_ATTR.COMMAND_DETACH) === "true";
 
     if (commandTemplate) {
       el.style.cursor = "pointer";
@@ -191,7 +191,7 @@ function renderApp(data: ConfigData) {
               inputEl.dispatchEvent(new Event("input"));
             } else {
               // 入力欄がない場合、自分自身に値を保持させる
-              const outputSelector = `[${CONFIG_ATTR.OUTPUT_VAR}="${outputVarName}"]`;
+              const outputSelector = `[${CONFIG_ATTR.COMMAND_OUTPUT_VAR}="${outputVarName}"]`;
               const outputEls = document.querySelectorAll(outputSelector);
 
               outputEls.forEach((target) => {

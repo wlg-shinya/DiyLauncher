@@ -1,11 +1,11 @@
 // config.xmlで使用するカスタム属性名の定義
 export const CONFIG_ATTR = {
   COMMAND: "data-command",
-  LOG_ID: "data-command-log-id",
-  LOG_FILE: "data-command-log-file",
-  LOG_MODE: "data-command-log-mode",
-  OUTPUT_VAR: "data-command-output-var",
-  DETACH: "data-command-detach",
+  COMMAND_LOG_ID: "data-command-log-id",
+  COMMAND_LOG_FILE: "data-command-log-file",
+  COMMAND_LOG_MODE: "data-command-log-mode",
+  COMMAND_OUTPUT_VAR: "data-command-output-var",
+  COMMAND_DETACH: "data-command-detach",
   VAR: "data-var",
   AUTO_CLICK: "data-auto-click",
 } as const;
