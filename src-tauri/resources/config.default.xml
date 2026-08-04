@@ -95,7 +95,7 @@
             <button class="launcher-btn" 
                 data-command="charmap.exe" 
                 data-command-detach="true"
-                >
+            >
                 🧮 文字コード表
             </button>
         </div>
@@ -120,7 +120,7 @@
                 data-command-log-file="logs/ping_{{target_host}}.log"
                 data-command-log-mode="overwrite"
                 data-command-pid="target-console-log"
-                >
+            >
                 ▶ ping {{target_host}} -n {{ping_count}}
             </button>
         </div>
@@ -133,7 +133,7 @@
                 data-command="hostname"
                 data-command-output-var="hostname"
                 data-auto-click="true"
-                >
+            >
                 {{hostname}}
             </span>
         </div>
@@ -146,7 +146,7 @@
                 data-command="echo {{NOW}}"
                 data-command-log-id="console-log"
                 data-command-pid="target-console-log"
-                >
+            >
                 現在時刻(NOW)を文字列で表示
             </button>
         </div>
@@ -155,7 +155,7 @@
         <textarea id="console-log" readonly></textarea>
         <button class="launcher-btn"
             data-command="@KILL:target-console-log"
-            >
+        >
             処理をキャンセル
         </button>
     </body>
