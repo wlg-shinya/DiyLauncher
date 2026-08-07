@@ -224,8 +224,14 @@ function renderApp(data: ConfigData) {
     if (commandTemplate) {
       el.addEventListener("click", async (e) => {
         e.preventDefault();
+
+        // バックアップ属性から元のテンプレートを動的に取得する
+        const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`) 
+                        || el.getAttribute(CONFIG_ATTR.COMMAND) 
+                        || "";
+
         // 実行直前の値を解決してコマンド作成
-        const finalCommand = resolveTemplate(commandTemplate);
+        const finalCommand = resolveTemplate(rawTemplate);
         const finalCmdPid = cmdPidTemplate ? resolveTemplate(cmdPidTemplate) : undefined;
 
         // COMMAND.KILL によるプロセスキル
