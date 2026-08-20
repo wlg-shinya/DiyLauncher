@@ -320,7 +320,7 @@ function renderApp(data: ConfigData) {
   });
 
   // 自動クリックロジック
-  const autoClickElements = document.body.querySelectorAll(`[${CONFIG_ATTR.AUTO_CLICK}]`);
+  const autoClickElements = document.body.querySelectorAll(`[${CONFIG_ATTR.AUTO_CLICK}="true"]`);
   if (autoClickElements.length > 0) {
     setTimeout(() => {
       autoClickElements.forEach((element) => {
