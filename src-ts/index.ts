@@ -140,6 +140,20 @@ function injectSystemStyles() {
   document.head.prepend(styleEl);
 }
 
+function triggerDependentCommands(updatedVarName: string) {
+  const commandElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND}]`);
+
+  commandElements.forEach((el) => {
+    const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`) 
+                    || el.getAttribute(CONFIG_ATTR.COMMAND) 
+                    || "";
+
+    if (rawTemplate.includes(`{{${updatedVarName}}}`) && el.hasAttribute(CONFIG_ATTR.COMMAND_OUTPUT_VAR)) {
+      el.click();
+    }
+  });
+}
+
 function renderApp(data: ConfigData) {
   if (!data) return;
   if (!CONFIG_VAR || !CONFIG_VAR.PACKAGE_VERSION) return;
@@ -172,12 +186,27 @@ function renderApp(data: ConfigData) {
         el.value = savedValue;
       }
 
-      const saveValue = () => {
+      // inputイベントがあったときvalueは即時反映してローカル保存
+      // 一定時間後に依存関係のあるコマンドを実行する
+      let debounceTimer: number | undefined;
+      const saveValueOnly = () => {
         localStorage.setItem(storageKey, el.value);
         updateDynamicView();
       };
-      el.addEventListener("input", saveValue);
-      el.addEventListener("change", saveValue);
+      el.addEventListener("input", () => {
+        saveValueOnly();
+        if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(() => {
+          triggerDependentCommands(varName);
+        }, 500);
+      });
+
+      // changeイベントがあったときは依存関係のあるコマンドを即実行
+      el.addEventListener("change", () => {
+        saveValueOnly();
+        if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
+        triggerDependentCommands(varName);
+      });
     }
   });
 
