@@ -55,8 +55,13 @@ function resolveTemplate(template: string): string {
       // [data-var="..."] (入力欄) を探す
       const inputSelector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
       const inputEl = document.querySelector(inputSelector);
-      if (inputEl && "value" in inputEl) {
-        return (inputEl as HTMLInputElement).value;
+      if (inputEl && inputEl instanceof HTMLInputElement) {
+        if (inputEl.type === "radio") {
+          const checkedRadio = document.querySelector(`[${CONFIG_ATTR.VAR}="${varName}"]:checked`) as HTMLInputElement;
+          if (checkedRadio) return checkedRadio.value;
+        } else if ("value" in inputEl) {
+          return inputEl.value;
+        }
       }
 
       // なければ [data-command-output-var="..."] (コマンド結果保持要素) を探す
@@ -144,9 +149,9 @@ function triggerDependentCommands(updatedVarName: string) {
   const commandElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND}]`);
 
   commandElements.forEach((el) => {
-    const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`) 
-                    || el.getAttribute(CONFIG_ATTR.COMMAND) 
-                    || "";
+    const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`)
+      || el.getAttribute(CONFIG_ATTR.COMMAND)
+      || "";
 
     if (rawTemplate.includes(`{{${updatedVarName}}}`) && el.hasAttribute(CONFIG_ATTR.COMMAND_OUTPUT_VAR)) {
       el.click();
@@ -176,37 +181,53 @@ function renderApp(data: ConfigData) {
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
 
   dataVarElements.forEach((element) => {
-    const el = element as HTMLInputElement;
+    if (!(element instanceof HTMLInputElement)) return;
+
+    const el = element;
     const varName = el.getAttribute(CONFIG_ATTR.VAR);
     if (varName) {
       const storageKey = `user_input_${varName}`;
       const savedValue = localStorage.getItem(storageKey);
 
-      if (savedValue !== null) {
-        el.value = savedValue;
-      }
+      if (el.type === "radio") {
+        if (savedValue !== null) {
+          el.checked = (el.value === savedValue);
+        }
 
-      // inputイベントがあったときvalueは即時反映してローカル保存
-      // 一定時間後に依存関係のあるコマンドを実行する
-      let debounceTimer: number | undefined;
-      const saveValueOnly = () => {
-        localStorage.setItem(storageKey, el.value);
-        updateDynamicView();
-      };
-      el.addEventListener("input", () => {
-        saveValueOnly();
-        if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
-        debounceTimer = window.setTimeout(() => {
+        el.addEventListener("change", () => {
+          if (el.checked) {
+            localStorage.setItem(storageKey, el.value);
+            updateDynamicView();
+            triggerDependentCommands(varName);
+          }
+        });
+      } else {
+        if (savedValue !== null) {
+          el.value = savedValue;
+        }
+
+        // inputイベントがあったときvalueは即時反映してローカル保存
+        // 一定時間後に依存関係のあるコマンドを実行する
+        let debounceTimer: number | undefined;
+        const saveValueOnly = () => {
+          localStorage.setItem(storageKey, el.value);
+          updateDynamicView();
+        };
+        el.addEventListener("input", () => {
+          saveValueOnly();
+          if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
+          debounceTimer = window.setTimeout(() => {
+            triggerDependentCommands(varName);
+          }, 500);
+        });
+
+        // changeイベントがあったときは依存関係のあるコマンドを即実行
+        el.addEventListener("change", () => {
+          saveValueOnly();
+          if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
           triggerDependentCommands(varName);
-        }, 500);
-      });
-
-      // changeイベントがあったときは依存関係のあるコマンドを即実行
-      el.addEventListener("change", () => {
-        saveValueOnly();
-        if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
-        triggerDependentCommands(varName);
-      });
+        });
+      }
     }
   });
 
@@ -217,7 +238,7 @@ function renderApp(data: ConfigData) {
 
     // 属性のスキャン
     Array.from(el.attributes).forEach((attr) => {
-      if (attr.name.startsWith("data-template-")) return; 
+      if (attr.name.startsWith("data-template-")) return;
 
       if (attr.value && attr.value.includes("{{")) {
         el.setAttribute(`data-template-attr-${attr.name}`, attr.value);
@@ -255,9 +276,9 @@ function renderApp(data: ConfigData) {
         e.preventDefault();
 
         // バックアップ属性から元のテンプレートを動的に取得する
-        const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`) 
-                        || el.getAttribute(CONFIG_ATTR.COMMAND) 
-                        || "";
+        const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`)
+          || el.getAttribute(CONFIG_ATTR.COMMAND)
+          || "";
 
         // 実行直前の値を解決してコマンド作成
         const finalCommand = resolveTemplate(rawTemplate);
