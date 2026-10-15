@@ -170,10 +170,19 @@ pub async fn run_command_with_log(
 
         // ログファイルの準備
         let log_writer = prepare_log_file(&log_file, &log_mode);
+        // ログ書き込み用の共有参照。後続の共通処理でも書き込めるように Arc<Mutex<>> 化しておく
+        let writer_arc = log_writer.map(|w| Arc::new(Mutex::new(w)));
 
         // コマンドストリーミング実行
         let mut cmd = create_command(&command);
-        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        
+        // コマンドの標準出力設定
+        if detach {
+            cmd.stdout(Stdio::null()).stderr(Stdio::null());
+        } else {
+            cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        }
+        
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
@@ -184,67 +193,70 @@ pub async fn run_command_with_log(
         };
 
         let pid = child.id();
-        if !detach {
+        let exit_code: i32;
+
+        if detach {
+            emit_output(&app, &target_id, cmd_pid.as_deref(), "[Detached process started]\n", "stdout");
+            // デタッチ時は終了を待たないので仮の成功コードとして扱う
+            exit_code = 0;
+        } else {
             process_state_cloned.add(cmd_pid.as_deref(), pid);
-        }
 
-        let stdout = child.stdout.take();
-        let stderr = child.stderr.take();
+            let stdout = child.stdout.take();
+            let stderr = child.stderr.take();
 
-        // ログ書き込み用の共有参照
-        let writer_arc = log_writer.map(|w| Arc::new(Mutex::new(w)));
-
-        // stdout 読み込み用スレッド
-        let app_stdout = app.clone();
-        let target_stdout = target_id.clone();
-        let writer_stdout = writer_arc.clone();
-        let cmd_pid_stdout = cmd_pid.clone();
-        let stdout_handle = std::thread::spawn(move || {
-            if let Some(mut stream) = stdout {
-                let mut buf = [0u8; 1024];
-                while let Ok(n) = stream.read(&mut buf) {
-                    if n == 0 { break; }
-                    let text = decode_bytes(&buf[..n]);
-                    emit_output(&app_stdout, &target_stdout, cmd_pid_stdout.as_deref(), &text, "stdout");
-                    if let Some(ref w) = writer_stdout {
-                        if let Ok(mut file) = w.lock() {
-                            let _ = file.write_all(text.as_bytes());
+            // stdout 読み込み用スレッド
+            let app_stdout = app.clone();
+            let target_stdout = target_id.clone();
+            let writer_stdout = writer_arc.clone();
+            let cmd_pid_stdout = cmd_pid.clone();
+            let stdout_handle = std::thread::spawn(move || {
+                if let Some(mut stream) = stdout {
+                    let mut buf = [0u8; 1024];
+                    while let Ok(n) = stream.read(&mut buf) {
+                        if n == 0 { break; }
+                        let text = decode_bytes(&buf[..n]);
+                        emit_output(&app_stdout, &target_stdout, cmd_pid_stdout.as_deref(), &text, "stdout");
+                        if let Some(ref w) = writer_stdout {
+                            if let Ok(mut file) = w.lock() {
+                                let _ = file.write_all(text.as_bytes());
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        // stderr 読み込み用スレッド
-        let app_stderr = app.clone();
-        let target_stderr = target_id.clone();
-        let writer_stderr = writer_arc.clone();
-        let cmd_pid_stderr = cmd_pid.clone();
-        let stderr_handle = std::thread::spawn(move || {
-            if let Some(mut stream) = stderr {
-                let mut buf = [0u8; 1024];
-                while let Ok(n) = stream.read(&mut buf) {
-                    if n == 0 { break; }
-                    let text = decode_bytes(&buf[..n]);
-                    emit_output(&app_stderr, &target_stderr, cmd_pid_stderr.as_deref(), &text, "stderr");
-                    if let Some(ref w) = writer_stderr {
-                        if let Ok(mut file) = w.lock() {
-                            let _ = file.write_all(text.as_bytes());
+            // stderr 読み込み用スレッド
+            let app_stderr = app.clone();
+            let target_stderr = target_id.clone();
+            let writer_stderr = writer_arc.clone();
+            let cmd_pid_stderr = cmd_pid.clone();
+            let stderr_handle = std::thread::spawn(move || {
+                if let Some(mut stream) = stderr {
+                    let mut buf = [0u8; 1024];
+                    while let Ok(n) = stream.read(&mut buf) {
+                        if n == 0 { break; }
+                        let text = decode_bytes(&buf[..n]);
+                        emit_output(&app_stderr, &target_stderr, cmd_pid_stderr.as_deref(), &text, "stderr");
+                        if let Some(ref w) = writer_stderr {
+                            if let Ok(mut file) = w.lock() {
+                                let _ = file.write_all(text.as_bytes());
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        // パイプ読み込みスレッドの完了を待機
-        let _ = stdout_handle.join();
-        let _ = stderr_handle.join();
+            // パイプ読み込みスレッドの完了を待機
+            let _ = stdout_handle.join();
+            let _ = stderr_handle.join();
 
-        // プロセス終了待機 & 経過時間計算
-        let status = child.wait();
-
-        if !detach {
+            // プロセス終了待機 & 経過時間計算
+            let status = child.wait();
             process_state_cloned.remove(cmd_pid.as_deref(), pid);
+            
+            // 実際のプロセスの終了コードを取得
+            exit_code = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
         }
 
         let elapsed = start_time.elapsed();
@@ -253,12 +265,12 @@ pub async fn run_command_with_log(
         let seconds = elapsed.as_secs() % 60;
         let millis = elapsed.subsec_millis();
         let time_str = format!("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, millis);
-        let exit_code = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
         let exit_msg = format!("\n[Process exited with code: {} (Elapsed: {})]\n", exit_code, time_str);
 
-        // 終了通知メッセージの送信
+        // UIへ終了イベントを送信
         emit_output(&app, &target_id, cmd_pid.as_deref(), &exit_msg, "exit");
 
+        // ログファイルにも終了文を追記
         if let Some(ref w) = writer_arc {
             if let Ok(mut file) = w.lock() {
                 let _ = file.write_all(exit_msg.as_bytes());
@@ -283,7 +295,6 @@ fn prepare_log_file(log_file: &Option<String>, log_mode: &Option<String>) -> Opt
     let file_path_str = log_file.as_ref()?;
     let path = PathBuf::from(file_path_str);
 
-    // 親ディレクトリが存在しない場合は作成
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
