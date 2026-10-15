@@ -87,11 +87,11 @@
         <!-- ここの内容がそのまま body に適用されます -->
 
         <!-- data-command で記述されたコマンドをOSで実行します -->
-        <!-- data-command-detach を true に設定するとアプリを終了しても data-command を終了しません。デフォルトは false で、アプリ終了とともに data-command を終了させます。ただし特定の exe は false でも終了しないことがあり、それはOSの仕様です -->
         <div class="grid-container">
             <button class="launcher-btn" data-command="@APP_TEXT_EDITOR_CMD@">
                 @APP_TEXT_EDITOR_LABEL@
             </button>
+            <!-- data-command-detach を true に設定するとプロセスから切り離してこのアプリを終了しても data-command が終了しなくなります。デフォルトは false で、アプリ終了とともに data-command を終了させます -->
             <button class="launcher-btn" 
                 data-command="@APP_UTIL_CMD@" 
                 data-command-detach="true"
