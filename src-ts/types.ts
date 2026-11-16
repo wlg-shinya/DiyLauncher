@@ -1,11 +1,3 @@
-// XML全体の構造
-export interface XmlStructure {
-  config: {
-    head: { __cdata: string };
-    body: { __cdata: string };
-  };
-}
-
 // Configデータの戻り値型
 export interface ConfigData {
   head: string;
