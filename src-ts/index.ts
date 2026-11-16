@@ -9,6 +9,14 @@ declare global {
   }
 }
 
+function getResolvedAttr(el: Element, attrName: string): string {
+  const raw =
+    el.getAttribute(`data-template-attr-${attrName}`) ||
+    el.getAttribute(attrName) ||
+    "";
+  return resolveTemplate(raw);
+}
+
 function updateDynamicView() {
   const dynamicElements = document.body.querySelectorAll("[data-template-text]");
   dynamicElements.forEach((el) => {
@@ -31,7 +39,6 @@ function updateDynamicView() {
   }
 }
 
-// config.xml内の{{}}の解決
 function resolveTemplate(template: string): string {
   if (!template) return "";
 
@@ -109,12 +116,15 @@ function executeScripts(container: HTMLElement) {
 function setButtonsDisabledByPid(cmdPid: string, isRunning: boolean) {
   if (!cmdPid) return;
 
-  // data-command-pid を指定している要素の制御
-  const pidElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND_PID}="${cmdPid}"]`);
+  // data-command-pid を指定している要素の制御（テンプレート変数を展開して比較）
+  const pidElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND_PID}]`);
   pidElements.forEach((el) => {
-    const cmd = el.getAttribute(CONFIG_ATTR.COMMAND) || "";
+    const resolvedPid = getResolvedAttr(el, CONFIG_ATTR.COMMAND_PID);
+    if (resolvedPid !== cmdPid) return;
+
+    const resolvedCmd = getResolvedAttr(el, CONFIG_ATTR.COMMAND);
     if ("disabled" in el) {
-      if (cmd.startsWith(COMMAND.KILL)) {
+      if (resolvedCmd.startsWith(COMMAND.KILL)) {
         // KILLボタンは実行中に活性化(disabled=false)
         (el as HTMLButtonElement).disabled = !isRunning;
       } else {
@@ -124,10 +134,11 @@ function setButtonsDisabledByPid(cmdPid: string, isRunning: boolean) {
     }
   });
 
-  // data-command="${COMMAND.KILL}${cmdPid}" を持つボタンの制御
-  const killButtons = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND}="${COMMAND.KILL}${cmdPid}"]`);
-  killButtons.forEach((el) => {
-    if ("disabled" in el) {
+  // data-command="@KILL:..." を持つボタンの制御（テンプレート変数を展開して比較）
+  const commandElements = document.body.querySelectorAll<HTMLElement>(`[${CONFIG_ATTR.COMMAND}]`);
+  commandElements.forEach((el) => {
+    const resolvedCmd = getResolvedAttr(el, CONFIG_ATTR.COMMAND);
+    if (resolvedCmd === `${COMMAND.KILL}${cmdPid}` && "disabled" in el) {
       (el as HTMLButtonElement).disabled = !isRunning;
     }
   });
@@ -279,7 +290,6 @@ function renderApp(data: ConfigData) {
     const logModeTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_LOG_MODE);
     const outputVarName = el.getAttribute(CONFIG_ATTR.COMMAND_OUTPUT_VAR);
     const isDetach = el.getAttribute(CONFIG_ATTR.COMMAND_DETACH) === "true";
-    const cmdPidTemplate = el.getAttribute(CONFIG_ATTR.COMMAND_PID);
 
     if (commandTemplate && commandTemplate.startsWith(COMMAND.KILL) && "disabled" in el) {
       (el as HTMLButtonElement).disabled = true;
@@ -289,14 +299,11 @@ function renderApp(data: ConfigData) {
       el.addEventListener("click", async (e) => {
         e.preventDefault();
 
-        // バックアップ属性から元のテンプレートを動的に取得する
-        const rawTemplate = el.getAttribute(`data-template-attr-${CONFIG_ATTR.COMMAND}`)
-          || el.getAttribute(CONFIG_ATTR.COMMAND)
-          || "";
-
-        // 実行直前の値を解決してコマンド作成
-        const finalCommand = resolveTemplate(rawTemplate);
-        const finalCmdPid = cmdPidTemplate ? resolveTemplate(cmdPidTemplate) : undefined;
+        // バックアップ属性から元のテンプレートを動的に取得して実行直前の値を解決する
+        const finalCommand = getResolvedAttr(el, CONFIG_ATTR.COMMAND);
+        const finalCmdPid = el.hasAttribute(CONFIG_ATTR.COMMAND_PID)
+          ? getResolvedAttr(el, CONFIG_ATTR.COMMAND_PID)
+          : undefined;
 
         // COMMAND.KILL によるプロセスキル
         if (finalCommand.startsWith(COMMAND.KILL)) {
