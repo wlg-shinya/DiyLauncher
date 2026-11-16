@@ -55,11 +55,17 @@ function resolveTemplate(template: string): string {
       // [data-var="..."] (入力欄) を探す
       const inputSelector = `[${CONFIG_ATTR.VAR}="${varName}"]`;
       const inputEl = document.querySelector(inputSelector);
-      if (inputEl && inputEl instanceof HTMLInputElement) {
-        if (inputEl.type === "radio") {
-          const checkedRadio = document.querySelector(`[${CONFIG_ATTR.VAR}="${varName}"]:checked`) as HTMLInputElement;
-          if (checkedRadio) return checkedRadio.value;
-        } else if ("value" in inputEl) {
+      if (inputEl) {
+        if (inputEl instanceof HTMLInputElement) {
+          if (inputEl.type === "radio") {
+            const checkedRadio = document.querySelector(`[${CONFIG_ATTR.VAR}="${varName}"]:checked`) as HTMLInputElement;
+            return checkedRadio ? checkedRadio.value : "";
+          } else if (inputEl.type === "checkbox") {
+            return inputEl.checked ? (inputEl.value || "true") : "";
+          } else {
+            return inputEl.value;
+          }
+        } else if (inputEl instanceof HTMLSelectElement || inputEl instanceof HTMLTextAreaElement) {
           return inputEl.value;
         }
       }
@@ -181,7 +187,13 @@ function renderApp(data: ConfigData) {
   const dataVarElements = document.body.querySelectorAll(`[${CONFIG_ATTR.VAR}]`);
 
   dataVarElements.forEach((element) => {
-    if (!(element instanceof HTMLInputElement)) return;
+    if (
+      !(element instanceof HTMLInputElement) &&
+      !(element instanceof HTMLSelectElement) &&
+      !(element instanceof HTMLTextAreaElement)
+    ) {
+      return;
+    }
 
     const el = element;
     const varName = el.getAttribute(CONFIG_ATTR.VAR);
@@ -189,7 +201,7 @@ function renderApp(data: ConfigData) {
       const storageKey = `user_input_${varName}`;
       const savedValue = localStorage.getItem(storageKey);
 
-      if (el.type === "radio") {
+      if (el instanceof HTMLInputElement && el.type === "radio") {
         if (savedValue !== null) {
           el.checked = (el.value === savedValue);
         }
@@ -201,13 +213,21 @@ function renderApp(data: ConfigData) {
             triggerDependentCommands(varName);
           }
         });
+      } else if (el instanceof HTMLInputElement && el.type === "checkbox") {
+        if (savedValue !== null) {
+          el.checked = (savedValue === "true");
+        }
+
+        el.addEventListener("change", () => {
+          localStorage.setItem(storageKey, String(el.checked));
+          updateDynamicView();
+          triggerDependentCommands(varName);
+        });
       } else {
         if (savedValue !== null) {
           el.value = savedValue;
         }
 
-        // inputイベントがあったときvalueは即時反映してローカル保存
-        // 一定時間後に依存関係のあるコマンドを実行する
         let debounceTimer: number | undefined;
         const saveValueOnly = () => {
           localStorage.setItem(storageKey, el.value);
@@ -221,7 +241,6 @@ function renderApp(data: ConfigData) {
           }, 500);
         });
 
-        // changeイベントがあったときは依存関係のあるコマンドを即実行
         el.addEventListener("change", () => {
           saveValueOnly();
           if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
