@@ -12,6 +12,9 @@ use tauri::{AppHandle, Emitter, State};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 #[derive(Default, Clone)]
 pub struct ProcessState {
     named: Arc<Mutex<HashMap<String, u32>>>,
@@ -79,7 +82,7 @@ impl ProcessState {
         {
             let _ = Command::new("taskkill")
                 .args(["/F", "/T", "/PID", &pid.to_string()])
-                .creation_flags(0x08000000)
+                .creation_flags(CREATE_NO_WINDOW)
                 .output();
         }
 
@@ -405,7 +408,7 @@ fn create_command(src: &str) -> Command {
     {
         let mut c = Command::new("cmd");
         c.raw_arg(format!("/S /C \"{}\"", src));
-        c.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        c.creation_flags(CREATE_NO_WINDOW);
         c
     }
 
