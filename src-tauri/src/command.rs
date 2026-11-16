@@ -1,10 +1,11 @@
 use encoding_rs::SHIFT_JIS;
 use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State};
 
@@ -175,14 +176,14 @@ pub async fn run_command_with_log(
 
         // コマンドストリーミング実行
         let mut cmd = create_command(&command);
-        
+
         // コマンドの標準出力設定
         if detach {
             cmd.stdout(Stdio::null()).stderr(Stdio::null());
         } else {
             cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
         }
-        
+
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
@@ -196,7 +197,13 @@ pub async fn run_command_with_log(
         let exit_code: i32;
 
         if detach {
-            emit_output(&app, &target_id, cmd_pid.as_deref(), "[Detached process started]\n", "stdout");
+            emit_output(
+                &app,
+                &target_id,
+                cmd_pid.as_deref(),
+                "[Detached process started]\n",
+                "stdout",
+            );
             // デタッチ時は終了を待たないので仮の成功コードとして扱う
             exit_code = 0;
         } else {
@@ -205,47 +212,23 @@ pub async fn run_command_with_log(
             let stdout = child.stdout.take();
             let stderr = child.stderr.take();
 
-            // stdout 読み込み用スレッド
-            let app_stdout = app.clone();
-            let target_stdout = target_id.clone();
-            let writer_stdout = writer_arc.clone();
-            let cmd_pid_stdout = cmd_pid.clone();
-            let stdout_handle = std::thread::spawn(move || {
-                if let Some(mut stream) = stdout {
-                    let mut buf = [0u8; 1024];
-                    while let Ok(n) = stream.read(&mut buf) {
-                        if n == 0 { break; }
-                        let text = decode_bytes(&buf[..n]);
-                        emit_output(&app_stdout, &target_stdout, cmd_pid_stdout.as_deref(), &text, "stdout");
-                        if let Some(ref w) = writer_stdout {
-                            if let Ok(mut file) = w.lock() {
-                                let _ = file.write_all(text.as_bytes());
-                            }
-                        }
-                    }
-                }
-            });
+            let stdout_handle = spawn_reader_thread(
+                stdout,
+                app.clone(),
+                target_id.clone(),
+                writer_arc.clone(),
+                cmd_pid.clone(),
+                "stdout",
+            );
 
-            // stderr 読み込み用スレッド
-            let app_stderr = app.clone();
-            let target_stderr = target_id.clone();
-            let writer_stderr = writer_arc.clone();
-            let cmd_pid_stderr = cmd_pid.clone();
-            let stderr_handle = std::thread::spawn(move || {
-                if let Some(mut stream) = stderr {
-                    let mut buf = [0u8; 1024];
-                    while let Ok(n) = stream.read(&mut buf) {
-                        if n == 0 { break; }
-                        let text = decode_bytes(&buf[..n]);
-                        emit_output(&app_stderr, &target_stderr, cmd_pid_stderr.as_deref(), &text, "stderr");
-                        if let Some(ref w) = writer_stderr {
-                            if let Ok(mut file) = w.lock() {
-                                let _ = file.write_all(text.as_bytes());
-                            }
-                        }
-                    }
-                }
-            });
+            let stderr_handle = spawn_reader_thread(
+                stderr,
+                app.clone(),
+                target_id.clone(),
+                writer_arc.clone(),
+                cmd_pid.clone(),
+                "stderr",
+            );
 
             // パイプ読み込みスレッドの完了を待機
             let _ = stdout_handle.join();
@@ -254,7 +237,7 @@ pub async fn run_command_with_log(
             // プロセス終了待機 & 経過時間計算
             let status = child.wait();
             process_state_cloned.remove(cmd_pid.as_deref(), pid);
-            
+
             // 実際のプロセスの終了コードを取得
             exit_code = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
         }
@@ -265,7 +248,10 @@ pub async fn run_command_with_log(
         let seconds = elapsed.as_secs() % 60;
         let millis = elapsed.subsec_millis();
         let time_str = format!("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, millis);
-        let exit_msg = format!("\n[Process exited with code: {} (Elapsed: {})]\n", exit_code, time_str);
+        let exit_msg = format!(
+            "\n[Process exited with code: {} (Elapsed: {})]\n",
+            exit_code, time_str
+        );
 
         // UIへ終了イベントを送信
         emit_output(&app, &target_id, cmd_pid.as_deref(), &exit_msg, "exit");
@@ -279,6 +265,83 @@ pub async fn run_command_with_log(
     });
 
     Ok(())
+}
+
+fn spawn_reader_thread<R: Read + Send + 'static>(
+    stream: Option<R>,
+    app: AppHandle,
+    target_id: String,
+    writer: Option<Arc<Mutex<File>>>,
+    cmd_pid: Option<String>,
+    output_type: &'static str,
+) -> JoinHandle<()> {
+    std::thread::spawn(move || {
+        if let Some(stream) = stream {
+            let mut reader = BufReader::new(stream);
+            let mut line_buf = Vec::new();
+
+            loop {
+                line_buf.clear();
+                match read_until_newline(&mut reader, &mut line_buf) {
+                    Ok(0) => break, // EOF
+                    Ok(_) => {
+                        let text = decode_bytes(&line_buf);
+                        emit_output(&app, &target_id, cmd_pid.as_deref(), &text, output_type);
+                        if let Some(ref w) = writer {
+                            if let Ok(mut file) = w.lock() {
+                                let _ = file.write_all(text.as_bytes());
+                            }
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        }
+    })
+}
+
+fn read_until_newline<R: BufRead>(reader: &mut R, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+    const MAX_LINE_BYTES: usize = 65536;
+    let mut total_read = 0;
+
+    loop {
+        let available = match reader.fill_buf() {
+            Ok(n) => n,
+            Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e),
+        };
+
+        if available.is_empty() {
+            break;
+        }
+
+        let mut found_end = None;
+        for (i, &b) in available.iter().enumerate() {
+            if b == b'\n' {
+                found_end = Some(i + 1);
+                break;
+            } else if b == b'\r' {
+                // \r\n の場合は \n までまとめて1行として扱う
+                if i + 1 < available.len() && available[i + 1] == b'\n' {
+                    found_end = Some(i + 2);
+                } else {
+                    found_end = Some(i + 1);
+                }
+                break;
+            }
+        }
+
+        let consume_len = found_end.unwrap_or(available.len());
+        buf.extend_from_slice(&available[..consume_len]);
+        reader.consume(consume_len);
+        total_read += consume_len;
+
+        if found_end.is_some() || buf.len() >= MAX_LINE_BYTES {
+            break;
+        }
+    }
+
+    Ok(total_read)
 }
 
 fn emit_output(app: &AppHandle, target_id: &str, cmd_pid: Option<&str>, text: &str, output_type: &str) {
