@@ -1,5 +1,4 @@
-import { BridgeAPI, ConfigData, CommandOutput } from "./types";
-import { CONFIG_ATTR, CONFIG_VAR, COMMAND } from "./constants";
+import { CONFIG_ATTR, CONFIG_VAR, COMMAND, BridgeAPI, ConfigData, CommandOutput } from "./types";
 import { setupTauriBridge } from "./tauri-bridge";
 
 setupTauriBridge();
