@@ -107,7 +107,7 @@ pub fn apply_window_settings(app: &tauri::AppHandle, parsed: &ParsedConfig) {
 }
 
 pub fn setup_config_watcher(app: AppHandle) {
-    let config_path = get_app_path(CONFIG_FILE_NAME);
+    let watch_dir = get_base_dir();
 
     std::thread::spawn(move || {
         let (tx, rx) = channel();
@@ -120,45 +120,73 @@ pub fn setup_config_watcher(app: AppHandle) {
             }
         };
 
-        if let Err(e) = watcher.watch(&config_path, notify::RecursiveMode::NonRecursive) {
+        // エディタのアトミック保存（一時ファイルからのリネーム置換）でも監視が切れないよう親ディレクトリを監視する
+        if let Err(e) = watcher.watch(&watch_dir, notify::RecursiveMode::NonRecursive) {
             eprintln!("[Error] {} の監視に失敗: {}", CONFIG_FILE_NAME, e);
             return;
         }
 
-        let mut last_updated = Instant::now();
+        // 初回イベントが即座に発火しても弾かれないよう、過去の時刻で初期化
+        let mut last_updated = Instant::now() - Duration::from_secs(1);
 
         for res in rx {
             match res {
                 Ok(event) => {
-                    if matches!(event.kind, notify::EventKind::Modify(_)) {
-                        if last_updated.elapsed() < Duration::from_millis(200) {
-                            continue;
+                    let is_relevant_kind = matches!(
+                        event.kind,
+                        notify::EventKind::Modify(_) | notify::EventKind::Create(_)
+                    );
+                    if !is_relevant_kind {
+                        continue;
+                    }
+
+                    // イベント対象パスに config.xml が含まれているか確認
+                    let is_config_file = event.paths.iter().any(|p| {
+                        p.file_name().and_then(|name| name.to_str()) == Some(CONFIG_FILE_NAME)
+                    });
+                    if !is_config_file {
+                        continue;
+                    }
+
+                    if last_updated.elapsed() < Duration::from_millis(200) {
+                        continue;
+                    }
+                    last_updated = Instant::now();
+
+                    // エディタの書き込み・リネーム完了を確実に待つためわずかにスリープ
+                    std::thread::sleep(Duration::from_millis(100));
+
+                    // 保存直後の瞬間的なファイルロックに備えて数回リトライして読み込む
+                    let mut xml_content = None;
+                    for _ in 0..3 {
+                        if let Ok(content) = read_config_xml() {
+                            if !content.trim().is_empty() {
+                                xml_content = Some(content);
+                                break;
+                            }
                         }
-                        last_updated = Instant::now();
+                        std::thread::sleep(Duration::from_millis(50));
+                    }
 
-                        // エディタの書き込み完了を確実に待つためわずかにスリープ
-                        std::thread::sleep(Duration::from_millis(100));
-
+                    if let Some(xml_str) = xml_content {
                         println!(
                             "[{}] が更新されました。ホットリロードを実行します。",
                             CONFIG_FILE_NAME
                         );
 
-                        if let Ok(xml_str) = read_config_xml() {
-                            let version = app.package_info().version.to_string();
-                            let parsed = parse_config_xml(&xml_str, &version);
+                        let version = app.package_info().version.to_string();
+                        let parsed = parse_config_xml(&xml_str, &version);
 
-                            // ウィンドウサイズとタイトルの再適用
-                            apply_window_settings(&app, &parsed);
+                        // ウィンドウサイズとタイトルの再適用
+                        apply_window_settings(&app, &parsed);
 
-                            // フロントエンドへ更新データを送信
-                            let config_data = crate::bridge::ConfigData {
-                                head: parsed.head,
-                                body: parsed.body,
-                                version,
-                            };
-                            let _ = app.emit("on-config-updated", config_data);
-                        }
+                        // フロントエンドへ更新データを送信
+                        let config_data = crate::bridge::ConfigData {
+                            head: parsed.head,
+                            body: parsed.body,
+                            version,
+                        };
+                        let _ = app.emit("on-config-updated", config_data);
                     }
                 }
                 Err(e) => eprintln!("[Error] ファイル監視エラー: {}", e),
