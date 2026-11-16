@@ -168,14 +168,10 @@ function renderApp(data: ConfigData) {
   if (!data) return;
   if (!CONFIG_VAR || !CONFIG_VAR.PACKAGE_VERSION) return;
 
-  const { head, body, version } = data;
+  const { head, body } = data;
 
-  const versionRegex = new RegExp(`\\{\\{${CONFIG_VAR.PACKAGE_VERSION}\\}\\}`, "g");
-  const processedHead = (head || "").replace(versionRegex, version);
-  const processedBody = (body || "").replace(versionRegex, version);
-
-  document.head.innerHTML = processedHead;
-  document.body.innerHTML = processedBody;
+  document.head.innerHTML = head;
+  document.body.innerHTML = body;
 
   injectSystemStyles();
 
