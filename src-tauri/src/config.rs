@@ -3,8 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
-use tauri::Emitter;
+use tauri::{AppHandle, Emitter, Manager};
 
 const CONFIG_FILE_NAME: &str = "config.xml";
 const ICON_FILE_NAME: &str = "icon.ico";
@@ -46,8 +45,8 @@ pub fn read_config_xml() -> Result<String, String> {
 }
 
 pub fn parse_config_xml(xml_str: &str, version: &str) -> ParsedConfig {
-    let raw_head = extract_tag_content(xml_str, "head");
-    let raw_body = extract_tag_content(xml_str, "body");
+    let raw_head = extract_tag_content(xml_str, "head", true);
+    let raw_body = extract_tag_content(xml_str, "body", true);
 
     // パッケージバージョンタグを実際のバージョン文字列に置換
     let head = raw_head.replace(PACKAGE_VERSION_TAG, version);
@@ -62,7 +61,7 @@ pub fn parse_config_xml(xml_str: &str, version: &str) -> ParsedConfig {
     let height = extract_custom_setting(&head, "height", 500);
 
     // ウィンドウタイトルの取得
-    let title_str = extract_tag_content(&head, "title");
+    let title_str = extract_tag_content(&head, "title", false);
     let title = if title_str.is_empty() {
         None
     } else {
@@ -70,7 +69,13 @@ pub fn parse_config_xml(xml_str: &str, version: &str) -> ParsedConfig {
         Some(title_str.replace(PACKAGE_VERSION_TAG, version))
     };
 
-    ParsedConfig { head, body, width, height, title }
+    ParsedConfig {
+        head,
+        body,
+        width,
+        height,
+        title,
+    }
 }
 
 pub fn apply_window_icon(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
@@ -88,9 +93,9 @@ pub fn apply_window_icon(app: &AppHandle) -> Result<(), Box<dyn std::error::Erro
 pub fn apply_window_settings(app: &tauri::AppHandle, parsed: &ParsedConfig) {
     if let Some(window) = app.get_webview_window("main") {
         // サイズの適用
-        let size = tauri::Size::Logical(tauri::LogicalSize { 
-            width: parsed.width as f64, 
-            height: parsed.height as f64 
+        let size = tauri::Size::Logical(tauri::LogicalSize {
+            width: parsed.width as f64,
+            height: parsed.height as f64,
         });
         let _ = window.set_size(size);
 
@@ -131,9 +136,13 @@ pub fn setup_config_watcher(app: AppHandle) {
                         }
                         last_updated = Instant::now();
 
-                        std::thread::sleep(Duration::from_millis(100)); // エディタの書き込み完了を確実に待つためわずかにスリープ
+                        // エディタの書き込み完了を確実に待つためわずかにスリープ
+                        std::thread::sleep(Duration::from_millis(100));
 
-                        println!("[{}] が更新されました。ホットリロードを実行します。", CONFIG_FILE_NAME);
+                        println!(
+                            "[{}] が更新されました。ホットリロードを実行します。",
+                            CONFIG_FILE_NAME
+                        );
 
                         if let Ok(xml_str) = read_config_xml() {
                             let version = app.package_info().version.to_string();
@@ -173,34 +182,131 @@ fn get_app_path(file_name: &str) -> PathBuf {
     get_base_dir().join(file_name)
 }
 
-fn extract_tag_content(xml: &str, tag: &str) -> String {
-    let start_tag = format!("<{}>", tag);
-    let end_tag = format!("</{}>", tag);
+fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() {
+        return Some(0);
+    }
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+}
 
-    if let (Some(start_idx), Some(end_idx)) = (xml.find(&start_tag), xml.find(&end_tag)) {
-        let content_start = start_idx + start_tag.len();
-        if content_start <= end_idx {
-            let content = &xml[content_start..end_idx];
-            // 元のXMLに CDATA が含まれている場合は除去する
-            let clean_content = content.replace("<![CDATA[", "").replace("]]>", "");
-            return clean_content.trim().to_string();
+fn find_open_tag_end(xml: &str, tag: &str) -> Option<usize> {
+    let bytes = xml.as_bytes();
+    let tag_bytes = tag.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        // コメントブロック <!-- ... --> をスキップ（バイト列で比較しUTF-8境界パニックを防ぐ）
+        if bytes[i..].starts_with(b"<!--") {
+            if let Some(end_comment) = find_subsequence(&bytes[i + 4..], b"-->") {
+                i += 4 + end_comment + 3;
+                continue;
+            } else {
+                return None;
+            }
+        }
+
+        // 開始タグの候補 "<{tag}" をチェック
+        if bytes[i] == b'<' && i + 1 + tag_bytes.len() < len {
+            let after_lt = i + 1;
+            if &bytes[after_lt..after_lt + tag_bytes.len()] == tag_bytes {
+                let after_name = after_lt + tag_bytes.len();
+                let next_byte = bytes[after_name];
+
+                // タグ名の直後が '>' または空白文字（属性付きタグ）である場合のみ一致とみなす
+                if next_byte == b'>' || next_byte.is_ascii_whitespace() {
+                    if let Some(rel_gt) = bytes[after_name..].iter().position(|&b| b == b'>') {
+                        let gt_idx = after_name + rel_gt;
+                        // 自己終了タグ (<body />) は除外する
+                        let attr_bytes = &bytes[after_name..gt_idx];
+                        let last_non_ws = attr_bytes.iter().rev().find(|b| !b.is_ascii_whitespace());
+                        if last_non_ws != Some(&b'/') {
+                            return Some(gt_idx + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    None
+}
+
+fn find_close_tag_start(xml: &str, tag: &str, find_last: bool) -> Option<usize> {
+    let bytes = xml.as_bytes();
+    let tag_bytes = tag.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    let mut found = None;
+
+    while i < len {
+        // コメントブロック <!-- ... --> をスキップ（バイト列で比較しUTF-8境界パニックを防ぐ）
+        if bytes[i..].starts_with(b"<!--") {
+            if let Some(end_comment) = find_subsequence(&bytes[i + 4..], b"-->") {
+                i += 4 + end_comment + 3;
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        // 終了タグの候補 "</{tag}" をチェック
+        if bytes[i..].starts_with(b"</") && i + 2 + tag_bytes.len() < len {
+            let after_slash = i + 2;
+            if &bytes[after_slash..after_slash + tag_bytes.len()] == tag_bytes {
+                let mut cursor = after_slash + tag_bytes.len();
+                // "</body >" のように閉じ括弧前に空白がある場合も許容
+                while cursor < len && bytes[cursor].is_ascii_whitespace() {
+                    cursor += 1;
+                }
+                if cursor < len && bytes[cursor] == b'>' {
+                    if find_last {
+                        found = Some(i);
+                        i = cursor + 1;
+                        continue;
+                    } else {
+                        return Some(i);
+                    }
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    found
+}
+
+fn unwrap_cdata(content: &str) -> &str {
+    let trimmed = content.trim();
+    if let Some(inner) = trimmed
+        .strip_prefix("<![CDATA[")
+        .and_then(|s| s.strip_suffix("]]>"))
+    {
+        inner.trim()
+    } else {
+        trimmed
+    }
+}
+
+fn extract_tag_content(xml: &str, tag: &str, find_last_end: bool) -> String {
+    if let Some(content_start) = find_open_tag_end(xml, tag) {
+        if let Some(rel_end_idx) = find_close_tag_start(&xml[content_start..], tag, find_last_end) {
+            let content = &xml[content_start..content_start + rel_end_idx];
+            return unwrap_cdata(content).to_string();
         }
     }
     String::new()
 }
 
 fn extract_custom_setting(html: &str, tag: &str, default: u64) -> u64 {
-    let start_tag = format!("<{}>", tag);
-    let end_tag = format!("</{}>", tag);
-
-    if let (Some(start_idx), Some(end_idx)) = (html.find(&start_tag), html.find(&end_tag)) {
-        let content_start = start_idx + start_tag.len();
-        if content_start <= end_idx {
-            let content = html[content_start..end_idx].trim();
-            if let Ok(val) = content.parse::<u64>() {
-                return val;
-            }
-        }
+    let content = extract_tag_content(html, tag, false);
+    if let Ok(val) = content.parse::<u64>() {
+        return val;
     }
     default
 }
