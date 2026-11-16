@@ -169,8 +169,15 @@ pub async fn run_command_with_log(
         let start_time = Instant::now();
         let target_id = log_id.unwrap_or_default();
 
-        // ログファイルの準備
-        let log_writer = prepare_log_file(&log_file, &log_mode);
+        // ログファイルの準備（失敗時はUIのログ欄へ警告を表示して処理自体は続行する）
+        let log_writer = match prepare_log_file(&log_file, &log_mode) {
+            Ok(writer) => writer,
+            Err(err_msg) => {
+                let warn_msg = format!("[Warning] {}\n", err_msg);
+                emit_output(&app, &target_id, cmd_pid.as_deref(), &warn_msg, "stderr");
+                None
+            }
+        };
         // ログ書き込み用の共有参照。後続の共通処理でも書き込めるように Arc<Mutex<>> 化しておく
         let writer_arc = log_writer.map(|w| Arc::new(Mutex::new(w)));
 
@@ -354,23 +361,43 @@ fn emit_output(app: &AppHandle, target_id: &str, cmd_pid: Option<&str>, text: &s
     let _ = app.emit("on-command-output", payload);
 }
 
-fn prepare_log_file(log_file: &Option<String>, log_mode: &Option<String>) -> Option<File> {
-    let file_path_str = log_file.as_ref()?;
+fn prepare_log_file(
+    log_file: &Option<String>,
+    log_mode: &Option<String>,
+) -> Result<Option<File>, String> {
+    let Some(file_path_str) = log_file.as_ref() else {
+        return Ok(None);
+    };
+
+    if file_path_str.trim().is_empty() {
+        return Ok(None);
+    }
+
     let path = PathBuf::from(file_path_str);
 
     if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent).map_err(|e| {
+                format!(
+                    "ログディレクトリの作成に失敗しました ({}): {}",
+                    parent.display(),
+                    e
+                )
+            })?;
+        }
     }
 
     let is_append = log_mode.as_deref() == Some("append");
 
-    OpenOptions::new()
+    let file = OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(!is_append)
         .append(is_append)
-        .open(path)
-        .ok()
+        .open(&path)
+        .map_err(|e| format!("ログファイルを開けませんでした ({}): {}", path.display(), e))?;
+
+    Ok(Some(file))
 }
 
 fn create_command(src: &str) -> Command {
